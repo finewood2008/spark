@@ -122,6 +122,21 @@ export function Chat({ brandId, onShowPreview }: ChatProps) {
                 </div>
               )}
               
+              {/* 选项卡片 (针对预设问题或选择) */}
+              {msg.role === 'agent' && msg.content.includes('你可以直接在下面向我下达工作指令') && (
+                <div className="mt-3 flex flex-wrap gap-2 max-w-sm">
+                   {['帮我写一篇初夏上新推文', '为我设计一张端午节海报', '润色这篇品牌故事'].map(act => (
+                     <button 
+                       key={act}
+                       onClick={() => { setInput(act); setTimeout(handleSend, 100); }}
+                       className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-medium text-gray-600 rounded-full hover:border-[#FF6B35] hover:text-[#FF6B35] transition-colors"
+                     >
+                       {act}
+                     </button>
+                   ))}
+                </div>
+              )}
+              
               {/* 生成内容展现卡片 (简略版，大版在右侧) */}
               {msg.type === 'content_card' && msg.data && (
                   <div className="mt-3 bg-white p-4 rounded-xl border border-gray-200 shadow-sm transition-all hover:shadow-md cursor-pointer hover:border-[#FF6B35]/30 group" onClick={() => onShowPreview(msg.data)}>
@@ -163,8 +178,18 @@ export function Chat({ brandId, onShowPreview }: ChatProps) {
           />
           <div className="flex justify-between items-center px-2 pb-2">
             <div className="flex space-x-1">
-              <button className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors tooltip-trigger" title="上传品牌资产/参考图">
+              <button 
+                onClick={() => {
+                   // 模拟上传参考图，将文件名加入输入框
+                   setInput(prev => prev + (prev ? '\n' : '') + '[附图: 参考竞品海报.png] ');
+                }}
+                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors tooltip-trigger" 
+                title="上传参考资料/图片"
+              >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" /></svg>
+              </button>
+              <button className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors tooltip-trigger" title="调用品牌知识库">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
               </button>
             </div>
             <button
