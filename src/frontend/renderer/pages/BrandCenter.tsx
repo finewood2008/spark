@@ -129,7 +129,7 @@ export function BrandCenter() {
                    </div>
                 </div>
 
-                <div className="flex space-x-3">
+        <div className="flex space-x-3">
                   {!brand.active && (
                     <button 
                       onClick={() => handleActivateBrand(brand.id)}
@@ -143,8 +143,8 @@ export function BrandCenter() {
                       Agent 正在为此品牌服务中
                     </button>
                   )}
-                  <button className="px-4 py-2.5 bg-gray-100 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-200 transition-colors">
-                    设置
+                  <button className="px-4 py-2.5 bg-gray-100 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-200 transition-colors tooltip-trigger" title="打开品牌视觉资产与规则字典">
+                    编辑字典
                   </button>
                 </div>
               </div>

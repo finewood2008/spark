@@ -28,10 +28,10 @@ export function App() {
   const renderRightPanel = () => {
     switch (rightPanel) {
       case 'knowledge': return <KnowledgeBase brandId={brandId} />;
-      case 'brand':     return <Brand brandId={brandId} />;
       case 'publish':   return <Publish brandId={brandId} />;
       case 'settings':  return <Settings />;
       case 'brand_center': return <BrandCenter />;
+      case 'brand': return <Brand brandId={brandId} />;
       case 'preview':   
         return (
           <CanvasWorkspace 
