@@ -2,8 +2,6 @@
 node_modules/
 
 # 构建产物
-dist/
-dist-electron/
 release/
 
 # 环境配置
