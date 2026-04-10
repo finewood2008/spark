@@ -25,6 +25,17 @@ export function Chat({ brandId, onShowPreview }: ChatProps) {
       content: '嗨！初次见面，我是 **Alex**。从今天起，我就是你们团队的专属数字营销专家（也就是你的 CMO）。\n\n我的主要工作是：\n1. 学习并记住我们品牌的调性和产品知识\n2. 创作高转化文案、设计品牌物料\n3. 根据你的修改反馈，不断进化我的风格\n\n**你可以直接在下面向我下达工作指令，比如：“帮我写一篇关于咖啡的初夏上新小红书。”**',
     }
   ]);
+  // 模拟发送历史版本，演示“版本穿梭”功能
+  const [currentVersion, setCurrentVersion] = useState(1);
+  const totalVersions = 2; // 假设大模型已经生成了第二版
+
+  // 模拟处理上一步/下一步版本切换
+  const handleVersionSwitch = (direction: -1 | 1) => {
+     if (currentVersion + direction < 1 || currentVersion + direction > totalVersions) return;
+     setCurrentVersion(prev => prev + direction);
+     // 这里在实际产品中应该触发右侧工作台的数据重置
+  };
+
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -142,7 +153,13 @@ export function Chat({ brandId, onShowPreview }: ChatProps) {
                   <div className="mt-3 bg-white p-4 rounded-xl border border-gray-200 shadow-sm transition-all hover:shadow-md cursor-pointer hover:border-[#FF6B35]/30 group" onClick={() => onShowPreview(msg.data)}>
                       <div className="flex justify-between items-center mb-2">
                           <span className="text-xs font-bold text-[#FF6B35] uppercase tracking-wider bg-orange-50 px-2 py-0.5 rounded">{msg.data.platform} 草稿</span>
-                          <span className="text-xs text-gray-400 group-hover:text-[#FF6B35] transition-colors">在工作台查看 →</span>
+                          
+                          {/* 历史版本穿梭控制器 */}
+                          <div className="flex items-center space-x-2 bg-gray-50 rounded-full px-2 py-1" onClick={e => e.stopPropagation()}>
+                             <button onClick={() => handleVersionSwitch(-1)} className={`text-xs ${currentVersion > 1 ? 'text-gray-600 hover:text-[#FF6B35]' : 'text-gray-300 cursor-not-allowed'}`}>◀</button>
+                             <span className="text-[10px] text-gray-500 font-medium">v{currentVersion}/{totalVersions}</span>
+                             <button onClick={() => handleVersionSwitch(1)} className={`text-xs ${currentVersion < totalVersions ? 'text-gray-600 hover:text-[#FF6B35]' : 'text-gray-300 cursor-not-allowed'}`}>▶</button>
+                          </div>
                       </div>
                       <h4 className="font-bold text-[15px] text-gray-900 mb-1 line-clamp-1">{msg.data.title}</h4>
                       <p className="text-gray-500 text-xs line-clamp-2 leading-relaxed">{msg.data.body}</p>
