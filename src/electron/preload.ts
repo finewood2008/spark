@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('spark', {
   // 文件操作
   dialog: {
     openFile: () => ipcRenderer.invoke('dialog:openFile'),
+    openImage: () => ipcRenderer.invoke('dialog:openImage'),
   },
 
   // 应用信息
@@ -43,6 +44,7 @@ declare global {
     spark: {
       dialog: {
         openFile: () => Promise<Electron.OpenDialogReturnValue>;
+        openImage: () => Promise<string | null>;
       };
       app: {
         getVersion: () => Promise<string>;

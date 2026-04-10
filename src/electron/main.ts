@@ -47,7 +47,7 @@ function setupIPC(): void {
   // 使用新的接入真实 Agent (或者 Hermes 子进程) 的实现
   setupRealAgentIPC();
 
-  // 文件选择
+  // 文件选择 (通用)
   ipcMain.handle('dialog:openFile', async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openFile', 'multiSelections'],
@@ -58,6 +58,24 @@ function setupIPC(): void {
       ],
     });
     return result;
+  });
+
+  // 图片选择 (返回 Base64 以供前端直接渲染和发给模型)
+  ipcMain.handle('dialog:openImage', async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [
+        { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] }
+      ]
+    });
+    
+    if (result.canceled || result.filePaths.length === 0) return null;
+    
+    const filePath = result.filePaths[0];
+    const ext = path.extname(filePath).toLowerCase().substring(1);
+    const mimeType = ext === 'jpg' ? 'jpeg' : ext;
+    const base64 = await fs.readFile(filePath, 'base64');
+    return `data:image/${mimeType};base64,${base64}`;
   });
 
   // 获取应用版本
