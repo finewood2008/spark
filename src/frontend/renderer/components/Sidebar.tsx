@@ -10,11 +10,12 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { id: 'none'      as RightPanelMode, icon: '💬', label: '专注聊天' },
-  { id: 'preview'   as RightPanelMode, icon: '✨', label: '工作台' },
-  { id: 'knowledge' as RightPanelMode, icon: '📚', label: '记忆库' },
-  { id: 'brand'     as RightPanelMode, icon: '🎨', label: '品牌视觉' },
-  { id: 'publish'   as RightPanelMode, icon: '🚀', label: '发布管道' },
+  { id: 'none'         as RightPanelMode, icon: '💬', label: '专注聊天' },
+  { id: 'preview'      as RightPanelMode, icon: '✨', label: '工作台' },
+  { id: 'brand_center' as RightPanelMode, icon: '💎', label: '品牌中心' },
+  { id: 'knowledge'    as RightPanelMode, icon: '📚', label: '记忆库' },
+  { id: 'brand'        as RightPanelMode, icon: '🎨', label: '基础 VI 设定' },
+  { id: 'publish'      as RightPanelMode, icon: '🚀', label: '发布管道' },
 ];
 
 export function Sidebar({ currentPanel, onNavigate }: SidebarProps) {

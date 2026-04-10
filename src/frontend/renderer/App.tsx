@@ -12,11 +12,13 @@ import './styles/globals.css';
 
 import { CanvasWorkspace } from './components/CanvasWorkspace';
 
-export type RightPanelMode = 'none' | 'preview' | 'knowledge' | 'brand' | 'publish' | 'settings';
+import { BrandCenter } from './pages/BrandCenter';
+
+export type RightPanelMode = 'none' | 'preview' | 'knowledge' | 'brand' | 'publish' | 'settings' | 'brand_center';
 
 export function App() {
   // 右侧面板状态
-  const [rightPanel, setRightPanel] = useState<RightPanelMode>('knowledge');
+  const [rightPanel, setRightPanel] = useState<RightPanelMode>('brand_center');
   // 维护画布上的所有对象元素（支持同时存在多个草稿或图片）
   const [canvasItems, setCanvasItems] = useState<any[]>([]);
   
@@ -29,6 +31,7 @@ export function App() {
       case 'brand':     return <Brand brandId={brandId} />;
       case 'publish':   return <Publish brandId={brandId} />;
       case 'settings':  return <Settings />;
+      case 'brand_center': return <BrandCenter />;
       case 'preview':   
         return (
           <CanvasWorkspace 
