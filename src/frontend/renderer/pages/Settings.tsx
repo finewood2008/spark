@@ -10,7 +10,9 @@ export function Settings() {
     <div className="flex flex-col h-full bg-[#F9FAFB]">
       <div className="page-header">
         <div className="page-header-left">
-          <span className="page-header-icon bg-gray-100 text-gray-500 border-gray-200">⚙️</span>
+          <span className="page-header-icon bg-gray-100 text-gray-500 border-gray-200">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          </span>
           <div>
             <div className="page-title">系统设置</div>
             <div className="page-subtitle">模型配置 · 偏好与系统状态</div>
@@ -65,8 +67,8 @@ export function Settings() {
               <div className="card-body space-y-4">
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
                   <div>
-                    <h4 className="text-sm font-bold text-gray-800">本地记忆库</h4>
-                    <p className="text-xs text-gray-500">Alex 记住的您的个性化要求</p>
+                    <h4 className="text-sm font-bold text-gray-800">品牌记忆</h4>
+                    <p className="text-xs text-gray-500">火花记住的你的品牌偏好</p>
                   </div>
                   <button className="btn btn-secondary text-xs">清除记忆</button>
                 </div>

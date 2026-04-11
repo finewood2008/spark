@@ -125,7 +125,7 @@ export function CanvasWorkspace({ onClose, items, setItems }: WorkspaceProps) {
       <div className="absolute top-4 left-4 right-4 z-50 flex justify-between items-center pointer-events-none">
         <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl shadow-sm border border-gray-200 flex items-center space-x-4 pointer-events-auto">
           <div className="flex items-center space-x-2 border-r border-gray-100 pr-4">
-            <span className="text-xl">✨</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8 7 6 10 6 14a6 6 0 0012 0c0-4-2-7-6-12z"/></svg>
             <div>
               <h2 className="text-[13px] font-bold text-gray-800 leading-none">无限创作工坊</h2>
               <p className="text-[10px] text-gray-500 mt-0.5">可拖拽素材 · 本地图片处理</p>
@@ -213,11 +213,11 @@ export function CanvasWorkspace({ onClose, items, setItems }: WorkspaceProps) {
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 rounded-full bg-[#FF6B35]"></div>
                   <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                    {item.type === 'text_draft' ? '📝 智能草稿' : '🎨 视觉资产'}
+                    {item.type === 'text_draft' ? '智能草稿' : '视觉资产'}
                   </span>
                 </div>
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1">
-                   <button className="text-gray-400 hover:text-blue-500 p-1">✎</button>
+                   <button className="text-gray-400 hover:text-blue-500 p-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
                    <button className="text-gray-400 hover:text-red-500 p-1">×</button>
                 </div>
               </div>
@@ -244,14 +244,14 @@ export function CanvasWorkspace({ onClose, items, setItems }: WorkspaceProps) {
                   <img src={item.data.url} alt="Generated Asset" className="w-full h-auto block" draggable={false} />
                   {/* 图片上的悬浮操作栏 (大模型功能入口) */}
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center space-x-2 bg-gray-900/80 backdrop-blur-md px-3 py-2 rounded-xl opacity-0 group-hover/img:opacity-100 transition-opacity">
-                     <button onClick={() => handleImageEdit(item, '智能抠图')} className="text-white text-xs hover:text-[#FFB347] flex flex-col items-center"><span className="text-sm">✂️</span>抠图</button>
+                     <button onClick={() => handleImageEdit(item, '智能抠图')} className="text-white text-xs hover:text-[#FFB347] flex flex-col items-center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>抠图</button>
                      <div className="w-px h-6 bg-white/20"></div>
-                     <button onClick={() => handleImageEdit(item, 'AI 画面延伸扩图')} className="text-white text-xs hover:text-[#FFB347] flex flex-col items-center"><span className="text-sm">✨</span>扩图</button>
+                     <button onClick={() => handleImageEdit(item, 'AI 画面延伸扩图')} className="text-white text-xs hover:text-[#FFB347] flex flex-col items-center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>扩图</button>
                      <div className="w-px h-6 bg-white/20"></div>
                      <button onClick={() => {
                        const prompt = window.prompt('请输入你想对这张图片做的修改指令（例如：把背景变成海滩）：');
                        if (prompt) handleImageEdit(item, prompt);
-                     }} className="text-white text-xs hover:text-[#FFB347] flex flex-col items-center"><span className="text-sm">🪄</span>AI 魔法</button>
+                     }} className="text-white text-xs hover:text-[#FFB347] flex flex-col items-center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8L19 13"/><path d="M15 9h0"/><path d="M17.8 6.2L19 5"/><path d="M3 21l9-9"/><path d="M12.2 6.2L11 5"/></svg>AI 魔法</button>
                   </div>
                 </div>
               )}

@@ -1,81 +1,73 @@
 /**
- * App.tsx - 全新双栏 Agent 结构
+ * App.tsx - 全屏工作台 + 悬浮 AI 对话框
+ * 
+ * 布局：Sidebar(80px) + 全宽工作台
+ * AI 对话框悬浮在右下角，可折叠/展开，感知当前页面上下文
  */
 import React, { useState } from 'react';
 import { Sidebar } from './components/Sidebar';
-import { Chat } from './pages/Chat';
+import { FloatingChat, PageContext } from './components/FloatingChat';
 import { KnowledgeBase } from './pages/KnowledgeBase';
-import { Brand } from './pages/Brand';
 import { Publish } from './pages/Publish';
 import { Settings } from './pages/Settings';
+import { CanvasWorkspace } from './components/CanvasWorkspace';
+import { BrandCenter } from './pages/BrandCenter';
+import { AIWorkspace } from './pages/AIWorkspace';
 import './styles/globals.css';
 
-import { CanvasWorkspace } from './components/CanvasWorkspace';
-
-import { BrandCenter } from './pages/BrandCenter';
-
-export type RightPanelMode = 'none' | 'preview' | 'knowledge' | 'brand' | 'publish' | 'settings' | 'brand_center';
+export type PageMode = 'brand_center' | 'ai_workspace' | 'knowledge' | 'publish' | 'settings';
 
 export function App() {
-  // 右侧面板状态
-  const [rightPanel, setRightPanel] = useState<RightPanelMode>('brand_center');
-  // 维护画布上的所有对象元素（支持同时存在多个草稿或图片）
+  const [currentPage, setCurrentPage] = useState<PageMode>('ai_workspace');
   const [canvasItems, setCanvasItems] = useState<any[]>([]);
-  
   const brandId = 'default_brand';
 
-  // 渲染右侧面板
-  const renderRightPanel = () => {
-    switch (rightPanel) {
-      case 'knowledge': return <KnowledgeBase brandId={brandId} />;
-      case 'publish':   return <Publish brandId={brandId} />;
-      case 'settings':  return <Settings />;
+  const renderPage = () => {
+    switch (currentPage) {
       case 'brand_center': return <BrandCenter />;
-      case 'brand': return <Brand brandId={brandId} />;
-      case 'preview':   
-        return (
-          <CanvasWorkspace 
-             onClose={() => setRightPanel('none')} 
-             items={canvasItems} 
-             setItems={setCanvasItems} 
-          />
-        );
-      case 'none':
-      default:
-        return null;
+      case 'ai_workspace': return <AIWorkspace />;
+      case 'knowledge':    return <KnowledgeBase brandId={brandId} />;
+      case 'publish':      return <Publish brandId={brandId} />;
+      case 'settings':     return <Settings />;
+      default: return <BrandCenter />;
+    }
+  };
+
+  const handleChatAction = (action: string, payload?: any) => {
+    if (action === 'show_preview') {
+      setCanvasItems(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          type: 'text_draft',
+          x: Math.random() * 200 + 100,
+          y: Math.random() * 200 + 100,
+          data: payload,
+        },
+      ]);
+      setCurrentPage('preview');
     }
   };
 
   return (
     <div className="h-screen w-screen flex bg-gray-50 overflow-hidden font-sans">
-      {/* 最左侧极简导航条 */}
-      <Sidebar currentPanel={rightPanel} onNavigate={setRightPanel} />
-      
-      {/* 中部/左侧：聊天主界面 */}
-      <main className={`flex-shrink-0 transition-all duration-300 ease-in-out border-r border-gray-200 bg-white ${rightPanel === 'none' ? 'w-[calc(100%-80px)]' : 'w-[450px] shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10'}`}>
-        <Chat 
-          brandId={brandId} 
-          onShowPreview={(content) => {
-            // 当 Agent 产生新内容时，将其作为一个新元素加入无限画布的中心附近
-            setCanvasItems(prev => [
-               ...prev, 
-               {
-                  id: Date.now().toString(),
-                  type: 'text_draft',
-                  x: Math.random() * 200 + 100, // 稍微随机偏移以免完全重叠
-                  y: Math.random() * 200 + 100,
-                  data: content
-               }
-            ]);
-            setRightPanel('preview');
-          }}
-        />
+      {/* macOS 标题栏拖拽区 */}
+      <div className="fixed top-0 left-0 right-0 h-[38px] z-50" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties} />
+      {/* 侧边导航 */}
+      <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} />
+
+      {/* 全宽工作台 */}
+      <main className="flex-1 overflow-hidden bg-[#F9FAFB] relative">
+        {renderPage()}
       </main>
 
-      {/* 右侧：工作台展示区 */}
-      <aside className={`flex-1 transition-all duration-300 ease-in-out bg-[#F9FAFB] relative ${rightPanel === 'none' ? 'hidden' : 'block'}`}>
-        {renderRightPanel()}
-      </aside>
+      {/* 悬浮 AI 对话框（AI 工作台自带对话面板，不重复显示） */}
+      {currentPage !== 'ai_workspace' && (
+        <FloatingChat
+          currentPage={currentPage as PageContext}
+          onAction={handleChatAction}
+        />
+      )}
     </div>
   );
 }

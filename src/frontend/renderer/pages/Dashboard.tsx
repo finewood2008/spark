@@ -47,14 +47,14 @@ export function Dashboard({ brandId }: Props) {
       {/* 头部 */}
       <div className="page-header">
         <div className="page-header-left">
-          <span className="page-header-icon">✦</span>
+          <span className="page-header-icon bg-orange-50 text-[#FF6B35]"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
           <div>
             <div className="page-title">内容工作台</div>
             <div className="page-subtitle">AI 驱动的品牌内容创作</div>
           </div>
         </div>
         <div className="page-header-actions">
-          <button className="btn btn-ghost">📋 历史</button>
+          <button className="btn btn-ghost">历史</button>
           <button className="btn btn-ghost">⊕ 模板</button>
         </div>
       </div>
@@ -73,7 +73,7 @@ export function Dashboard({ brandId }: Props) {
             <ContentPreview content={content} />
           ) : (
             <div className="empty-state" style={{ height: '100%' }}>
-              <div className="empty-icon">💡</div>
+              <div className="empty-icon text-[#FF6B35]"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8 7 6 10 6 14a6 6 0 0012 0c0-4-2-7-6-12z"/></svg></div>
               <div className="empty-title">等待创作指令</div>
               <div className="empty-desc">在左侧输入内容主题，AI 将立即为你生成符合品牌调性的专业文案</div>
             </div>

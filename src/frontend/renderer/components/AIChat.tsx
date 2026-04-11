@@ -29,7 +29,7 @@ export function AIChat({ onGenerate, isGenerating }: Props) {
     {
       id: '0',
       role: 'ai',
-      text: '你好！我是火花 AI，告诉我想创作什么内容，我来帮你写 🔥',
+      text: '你好，我是火花。告诉我你想创作什么，我来帮你。',
       ts: new Date(),
     },
   ]);
@@ -87,7 +87,7 @@ export function AIChat({ onGenerate, isGenerating }: Props) {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 13,
             }}>
-              {msg.role === 'ai' ? '🔥' : '👤'}
+              {msg.role === 'ai' ? 'S' : 'U'}
             </div>
             <div style={{
               maxWidth: '75%',
@@ -105,7 +105,7 @@ export function AIChat({ onGenerate, isGenerating }: Props) {
         ))}
         {isGenerating && (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, var(--brand), var(--gold))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>🔥</div>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, var(--brand), var(--gold))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: 'white', fontWeight: 700 }}>S</div>
             <div style={{ padding: '8px 12px', borderRadius: '4px 12px 12px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-subtle)', color: 'var(--text-subtle)', fontSize: 13 }}>
               <span className="loading-pulse">正在生成…</span>
             </div>

@@ -18,7 +18,10 @@ function createWindow(): void {
     minWidth: 1024,
     minHeight: 700,
     title: '火花 Spark',
-    backgroundColor: '#1E3A5F',
+    backgroundColor: '#FFFFFF',
+    titleBarStyle: 'hiddenInset',
+    trafficLightPosition: { x: 16, y: 18 },
+    vibrancy: undefined,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -27,9 +30,15 @@ function createWindow(): void {
     show: false,
   });
 
-  // 加载页面 - 始终使用本地开发服务器
-  mainWindow.loadURL('http://localhost:5173');
-  mainWindow.webContents.openDevTools();
+  // 加载页面
+  const isDev = !app.isPackaged && process.env.NODE_ENV === 'development';
+  if (isDev) {
+    mainWindow.loadURL('http://localhost:5173');
+    mainWindow.webContents.openDevTools();
+  } else {
+    // 生产模式：加载 vite build 输出的 dist/index.html
+    mainWindow.loadFile(path.join(__dirname, '../../dist/index.html'));
+  }
 
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();

@@ -12,12 +12,12 @@ interface GeneratedContent {
 }
 
 const PLATFORM_LABELS: Record<string, { icon: string; name: string }> = {
-  wechat:       { icon: '💬', name: '公众号' },
-  xiaohongshu:  { icon: '📕', name: '小红书' },
-  douyin:       { icon: '🎵', name: '抖音' },
-  weibo:        { icon: '🌐', name: '微博' },
-  shipinhao:    { icon: '📹', name: '视频号' },
-  zhihu:        { icon: '❓', name: '知乎' },
+  wechat:       { icon: '公', name: '公众号' },
+  xiaohongshu:  { icon: '红', name: '小红书' },
+  douyin:       { icon: '抖', name: '抖音' },
+  weibo:        { icon: '博', name: '微博' },
+  shipinhao:    { icon: '视', name: '视频号' },
+  zhihu:        { icon: '知', name: '知乎' },
 };
 
 interface Props {
@@ -25,7 +25,7 @@ interface Props {
 }
 
 export function ContentPreview({ content }: Props) {
-  const p = PLATFORM_LABELS[content.platform] ?? { icon: '📄', name: content.platform };
+  const p = PLATFORM_LABELS[content.platform] ?? { icon: '?', name: content.platform };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -35,10 +35,10 @@ export function ContentPreview({ content }: Props) {
         padding: '12px 16px', borderBottom: '1px solid var(--border-subtle)',
         background: 'var(--bg-surface)',
       }}>
-        <span style={{ fontSize: 18 }}>{p.icon}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#6b7280', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6', borderRadius: 6, border: '1px solid #e5e7eb' }}>{p.icon}</span>
         <span className="badge badge-default">{p.name}</span>
         <span className="badge badge-success">
-          ★ {(content.score * 100).toFixed(0)} 分
+          {(content.score * 100).toFixed(0)} 分
         </span>
         <div style={{ flex: 1 }} />
         <button className="btn btn-ghost" style={{ fontSize: 11 }} onClick={() => navigator.clipboard?.writeText(content.body)}>
