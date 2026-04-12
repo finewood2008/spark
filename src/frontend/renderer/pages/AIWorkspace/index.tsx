@@ -18,16 +18,38 @@ const DEMO_COLORS = [
   ['#FFBE0B', '#FF006E'], ['#3A86FF', '#8338EC'],
 ];
 
-function makeDemoSvg(prompt: string, index: number, w: number, h: number): string {
+/** 生成中占位 SVG */
+function generatingSvg(prompt: string, index: number, w: number, h: number): string {
   const [c1, c2] = DEMO_COLORS[index % DEMO_COLORS.length];
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
     <defs><linearGradient id="g${index}" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:${c1}"/>
-      <stop offset="100%" style="stop-color:${c2}"/>
+      <stop offset="0%" style="stop-color:${c1};stop-opacity:0.3"/>
+      <stop offset="100%" style="stop-color:${c2};stop-opacity:0.3"/>
     </linearGradient></defs>
     <rect width="${w}" height="${h}" rx="12" fill="url(#g${index})"/>
-    <text x="${w/2}" y="${h/2-8}" text-anchor="middle" fill="white" font-size="16" font-family="system-ui" opacity="0.9">${prompt.slice(0, 12)}</text>
-    <text x="${w/2}" y="${h/2+16}" text-anchor="middle" fill="white" font-size="11" font-family="system-ui" opacity="0.5">方案 ${index + 1}</text>
+    <text x="${w/2}" y="${h/2-8}" text-anchor="middle" fill="#666" font-size="13" font-family="system-ui">AI 生成中...</text>
+    <text x="${w/2}" y="${h/2+14}" text-anchor="middle" fill="#999" font-size="10" font-family="system-ui">${prompt.slice(0, 16)}</text>
+  </svg>`;
+  return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
+}
+
+/** 将 AI 返回的文案结果渲染为 SVG 卡片 */
+function resultToSvg(title: string, content: string, tags: string[], index: number, w: number, h: number): string {
+  const [c1, c2] = DEMO_COLORS[index % DEMO_COLORS.length];
+  const lines = content.slice(0, 120).match(/.{1,20}/g) || [content.slice(0, 20)];
+  const textLines = lines.slice(0, 4).map((line, i) =>
+    `<text x="${w/2}" y="${h/2 + i * 18 - 10}" text-anchor="middle" fill="white" font-size="12" font-family="system-ui" opacity="0.85">${line}</text>`
+  ).join('');
+  const tagText = tags.length > 0 ? tags.slice(0, 3).map(t => `#${t}`).join(' ') : '';
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <defs><linearGradient id="r${index}" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:${c1}"/><stop offset="100%" style="stop-color:${c2}"/>
+    </linearGradient></defs>
+    <rect width="${w}" height="${h}" rx="12" fill="url(#r${index})"/>
+    <text x="${w/2}" y="30" text-anchor="middle" fill="white" font-size="14" font-family="system-ui" font-weight="bold" opacity="0.95">${title.slice(0, 16)}</text>
+    ${textLines}
+    <text x="${w/2}" y="${h - 16}" text-anchor="middle" fill="white" font-size="9" font-family="system-ui" opacity="0.5">${tagText}</text>
   </svg>`;
   return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
 }
@@ -43,7 +65,7 @@ export function AIWorkspace() {
   // 追踪下一行应该放的 Y 坐标（从 0 开始往下长，但视口会自动跟随）
   const nextY = useRef(40);
 
-  const doGenerate = useCallback((type: GenerationType, prompt: string) => {
+  const doGenerate = useCallback(async (type: GenerationType, prompt: string) => {
     const scene = QUICK_SCENES.find(s => s.id === type) || QUICK_SCENES[QUICK_SCENES.length - 1];
     const groupId = `group_${Date.now()}`;
     const { w, h } = scene.cardSize;
@@ -67,6 +89,7 @@ export function AIWorkspace() {
     }
     nextY.current = startY + h + GAP;
 
+    // 先放占位卡片
     const newCards: GenerationCard[] = positions.map((pos, i) => {
       cardCount.current++;
       return {
@@ -75,6 +98,7 @@ export function AIWorkspace() {
         width: w, height: h,
         type, prompt,
         status: 'generating' as const,
+        imageUrl: generatingSvg(prompt, i, w, h),
         title: `${scene.label} ${cardCount.current}`,
         createdAt: Date.now(),
         groupId,
@@ -83,33 +107,81 @@ export function AIWorkspace() {
 
     setCards(prev => [...prev, ...newCards]);
 
-    // 模拟生成
-    const imageResults: { id: string; url: string }[] = [];
-    let completed = 0;
+    // 调用真实 API
+    try {
+      if (window.spark?.workspace?.generate) {
+        const res = await window.spark.workspace.generate({ prompt, type });
 
-    newCards.forEach((card, i) => {
-      const delay = 600 + Math.random() * 1000 + i * 300;
-      setTimeout(() => {
-        const url = makeDemoSvg(prompt, i, w, h);
-        imageResults.push({ id: card.id, url });
-        completed++;
+        if (res.success && res.data?.results) {
+          const results: { title: string; content: string; tags: string[] }[] = res.data.results;
+          const imageResults: { id: string; url: string }[] = [];
 
-        setCards(prev => prev.map(c =>
-          c.id === card.id ? { ...c, status: 'done', imageUrl: url } : c
-        ));
+          newCards.forEach((card, i) => {
+            const result = results[i % results.length];
+            const url = resultToSvg(
+              result.title || `方案 ${i + 1}`,
+              result.content || '',
+              result.tags || [],
+              i, w, h
+            );
+            imageResults.push({ id: card.id, url });
 
-        if (completed === newCards.length) {
-          setIsGenerating(false);
+            setCards(prev => prev.map(c =>
+              c.id === card.id ? { ...c, status: 'done', imageUrl: url, title: result.title || c.title } : c
+            ));
+          });
+
           setMessages(prev => [...prev, {
             id: `msg_${Date.now()}`,
             role: 'ai',
-            content: `已生成 ${newCards.length} 个${scene.label}方案`,
+            content: `已生成 ${results.length} 个${scene.label}方案`,
             images: imageResults,
             timestamp: Date.now(),
           }]);
+        } else {
+          throw new Error(res.error || '生成失败');
         }
-      }, delay);
-    });
+      } else if (window.spark?.agent?.chat) {
+        // Fallback: agent:chat
+        const res = await window.spark.agent.chat(prompt);
+        const text = res.message || '';
+        const imageResults: { id: string; url: string }[] = [];
+
+        newCards.forEach((card, i) => {
+          const url = resultToSvg(`方案 ${i + 1}`, text, [], i, w, h);
+          imageResults.push({ id: card.id, url });
+          setCards(prev => prev.map(c =>
+            c.id === card.id ? { ...c, status: 'done', imageUrl: url } : c
+          ));
+        });
+
+        setMessages(prev => [...prev, {
+          id: `msg_${Date.now()}`,
+          role: 'ai',
+          content: `已生成 ${newCards.length} 个${scene.label}方案`,
+          images: imageResults,
+          timestamp: Date.now(),
+        }]);
+      } else {
+        throw new Error('未连接到 AI 服务');
+      }
+    } catch (err: any) {
+      console.error('[AIWorkspace] 生成失败:', err);
+      // 标记卡片为错误状态
+      newCards.forEach(card => {
+        setCards(prev => prev.map(c =>
+          c.id === card.id ? { ...c, status: 'error' } : c
+        ));
+      });
+      setMessages(prev => [...prev, {
+        id: `msg_${Date.now()}`,
+        role: 'ai',
+        content: `生成失败：${err.message || '未知错误'}`,
+        timestamp: Date.now(),
+      }]);
+    } finally {
+      setIsGenerating(false);
+    }
   }, []);
 
   const handleSend = useCallback((text: string) => {

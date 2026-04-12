@@ -18,6 +18,8 @@
     "src/electron/**/*"
   ],
   "exclude": [
-    "src/frontend/renderer/**/*"
+    "src/frontend/renderer/**/*",
+    "src/backend/qeeclaw-core-sdk/src/**/*",
+    "src/backend/qeeclaw-core-sdk/examples/**/*"
   ]
 }

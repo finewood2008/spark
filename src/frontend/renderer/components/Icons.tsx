@@ -129,3 +129,36 @@ export function IconRefresh({ size = 14, className }: IconProps) {
     </svg>
   );
 }
+
+export function IconCanvas({ size = defaults.size, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <rect x="2" y="2" width="20" height="20" rx="2" />
+      <path d="M2 12h20" />
+      <path d="M12 2v20" />
+      <circle cx="7" cy="7" r="1" fill="currentColor" />
+      <circle cx="17" cy="17" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function IconContentStudio({ size = defaults.size, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <rect x="8" y="13" width="8" height="5" rx="1" />
+      <line x1="8" y1="10" x2="16" y2="10" />
+    </svg>
+  );
+}
+
+export function IconVideo({ size = defaults.size, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <polygon points="10 8 16 12 10 16" fill="currentColor" opacity="0.3" stroke="none" />
+      <polygon points="10 8 16 12 10 16" />
+    </svg>
+  );
+}

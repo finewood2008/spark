@@ -88,7 +88,7 @@ export class SparkAgent extends EventEmitter {
     const style = intent.params?.style as string | undefined;
     
     // 自我进化：提取用户的隐含规则和要求
-    const evolutionDirectives = this.memorySystem.getEvolutionDirectives();
+    const evolutionDirectives = await this.memorySystem.getEvolutionDirectives(topic);
     const explicitRequirements = (intent.params?.requirements as string) || '';
     
     // 加载 Harness 规范（工作流、标准、自检清单）

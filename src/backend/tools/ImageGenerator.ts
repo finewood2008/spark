@@ -207,40 +207,64 @@ export class ImageGenerator {
   }
 
   /**
-   * 调用 DALL-E 生成图像
+   * 调用图像生成 API
+   * @TEMP_DIRECT — 直连 Gemini Proxy；后续应通过 SDK 统一路由
    */
   private async generateImage(prompt: string, filename: string): Promise<string> {
-    // 检查是否有 AI Provider
-    if (!this.aiProvider) {
-      console.warn('No AI provider configured for image generation');
-      return '';
-    }
-
     try {
-      // 实际使用 DALL-E API
-      // 这里需要调用 OpenAI 的图像生成 API
-      // 由于没有实际调用，返回占位符
-      
       await fs.ensureDir(this.outputPath);
       const filepath = path.join(this.outputPath, `${filename}.png`);
-      
-      // 占位符 - 实际会调用 DALL-E
-      console.log(`Would generate image: ${prompt.slice(0, 100)}...`);
-      
+
+      // @TEMP_DIRECT: 直接调用 Gemini Proxy DALL-E 兼容端点
+      const response = await fetch('https://gemini-proxy.finewood2008.workers.dev/v1/images/generations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          n: 1,
+          size: '1024x1024',
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Image generation API error ${response.status}: ${errText}`);
+      }
+
+      const json = await response.json() as { data?: Array<{ url?: string; b64_json?: string }> };
+      const imageData = json.data?.[0];
+
+      if (!imageData) {
+        throw new Error('No image data returned from API');
+      }
+
+      if (imageData.b64_json) {
+        // API returned base64 — write directly to file
+        const buffer = Buffer.from(imageData.b64_json, 'base64');
+        await fs.writeFile(filepath, buffer);
+      } else if (imageData.url) {
+        // API returned a URL — download the image
+        const imgResponse = await fetch(imageData.url);
+        if (!imgResponse.ok) throw new Error(`Failed to download image from ${imageData.url}`);
+        const arrayBuf = await imgResponse.arrayBuffer();
+        await fs.writeFile(filepath, Buffer.from(arrayBuf));
+      } else {
+        throw new Error('API returned neither b64_json nor url');
+      }
+
+      console.log(`[ImageGenerator] Generated image: ${filepath}`);
       return filepath;
     } catch (error) {
-      console.error('Image generation failed:', error);
+      console.error('[ImageGenerator] Image generation failed:', error);
       throw error;
     }
   }
 
   /**
-   * 使用 vveai 的图像生成能力
+   * 使用 Gemini Proxy 的图像生成能力（公共 API 方法）
+   * @TEMP_DIRECT — 直连 Gemini Proxy；后续应通过 SDK 统一路由
    */
   async generateWithAPI(prompt: string, filename: string): Promise<string> {
-    // 如果配置了 vveai 的图像生成模型
-    // 可以通过 AI Provider 调用
-    console.log(`Image generation with vveai: ${prompt.slice(0, 100)}...`);
-    return '';
+    return this.generateImage(prompt, filename);
   }
 }

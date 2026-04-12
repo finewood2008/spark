@@ -48,24 +48,7 @@ export function FloatingChat({ currentPage, onAction }: FloatingChatProps) {
   const [hasUnread, setHasUnread] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const prevPage = useRef(currentPage);
-
-  // 页面切换时，自动发一条上下文提示
-  useEffect(() => {
-    if (prevPage.current !== currentPage) {
-      prevPage.current = currentPage;
-      const hint = PAGE_HINTS[currentPage];
-      if (hint) {
-        const contextMsg: Message = {
-          id: `ctx_${Date.now()}`,
-          role: 'agent',
-          content: hint,
-        };
-        setMessages(prev => [...prev, contextMsg]);
-        if (!isOpen) setHasUnread(true);
-      }
-    }
-  }, [currentPage, isOpen]);
+  // PAGE_HINTS 仅用于快捷操作区域的上下文感知，不再自动发消息
 
   // 滚动到底部
   useEffect(() => {

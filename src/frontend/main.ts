@@ -4,8 +4,8 @@
 
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
-import { SparkAgent } from './agent/SparkAgent';
-import { AIProvider } from './agent/tools/AIProvider';
+import { SparkAgent } from '../backend/agent/SparkAgent';
+import { AIProvider } from '../backend/tools/AIProvider';
 
 // 禁用硬件加速，避免某些机器上的问题
 app.disableHardwareAcceleration();

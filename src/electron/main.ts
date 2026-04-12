@@ -18,6 +18,7 @@ function createWindow(): void {
     minWidth: 1024,
     minHeight: 700,
     title: '火花 Spark',
+    icon: path.join(__dirname, '..', '..', 'build', 'icon.png'),
     backgroundColor: '#FFFFFF',
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 18 },
@@ -135,6 +136,15 @@ function setupIPC(): void {
 
 // App 生命周期
 app.whenReady().then(() => {
+  // macOS Dock 图标
+  if (process.platform === 'darwin' && app.dock) {
+    const iconPath = path.join(__dirname, '..', '..', 'build', 'icon.png');
+    if (fs.existsSync(iconPath)) {
+      const { nativeImage } = require('electron');
+      app.dock.setIcon(nativeImage.createFromPath(iconPath));
+    }
+  }
+
   setupIPC();
   createWindow();
 

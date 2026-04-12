@@ -6,7 +6,8 @@
  */
 import React from 'react';
 import { PageMode } from '../App';
-import { IconWorkspace, IconBrand, IconMemory, IconPublish, IconSettings } from './Icons';
+import { IconCanvas, IconContentStudio, IconVideo, IconBrand, IconMemory, IconPublish, IconSettings } from './Icons';
+import sparkLogo from '../spark-logo.png';
 
 interface SidebarProps {
   currentPage: PageMode;
@@ -14,26 +15,19 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { id: 'ai_workspace' as PageMode, Icon: IconWorkspace, label: '工作台' },
-  { id: 'brand_center' as PageMode, Icon: IconBrand,     label: '品牌中心' },
-  { id: 'knowledge'    as PageMode, Icon: IconMemory,     label: '品牌记忆' },
-  { id: 'publish'      as PageMode, Icon: IconPublish,    label: '发布' },
+  { id: 'ai_workspace'    as PageMode, Icon: IconCanvas,         label: '无限画布' },
+  { id: 'content_studio'  as PageMode, Icon: IconContentStudio,  label: '图文创作' },
+  { id: 'video_studio'    as PageMode, Icon: IconVideo,          label: '短视频' },
+  { id: 'brand_center'    as PageMode, Icon: IconBrand,          label: '品牌中心' },
+  { id: 'knowledge'       as PageMode, Icon: IconMemory,         label: '品牌记忆' },
+  { id: 'publish'         as PageMode, Icon: IconPublish,        label: '发布' },
 ];
 
 export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   return (
-    <nav className="w-[64px] bg-white border-r border-gray-100 flex flex-col items-center py-5 shrink-0 z-20">
-      {/* Logo mark */}
-      <div
-        className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FF6B35] to-[#FF9F1C] flex items-center justify-center cursor-pointer mb-8 hover:scale-105 transition-transform shadow-sm shadow-orange-200/50"
-        title="Spark"
-        onClick={() => onNavigate('ai_workspace')}
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <path d="M12 2C8 7 6 10 6 14a6 6 0 0012 0c0-4-2-7-6-12z" fill="white" opacity="0.95"/>
-          <path d="M12 8c-2 3-3 5-3 7a3 3 0 006 0c0-2-1-4-3-7z" fill="white" opacity="0.4"/>
-        </svg>
-      </div>
+    <nav className="w-[64px] bg-white border-r border-gray-100 flex flex-col items-center shrink-0 z-20">
+      {/* 红绿灯占位区 — macOS hiddenInset 模式下留出空间 */}
+      <div className="h-[52px] shrink-0" />
 
       {/* 主导航 */}
       <div className="flex-1 flex flex-col gap-1 w-full px-2">

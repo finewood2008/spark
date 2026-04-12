@@ -2,20 +2,49 @@
 /**
  * AIProvider - AI 提供商封装
  *
- * 统一封装 vveai API，支持 Claude/GPT/Gemini
+ * 双模式：
+ *   1. QeeClaw 平台模式 — 通过 QeeClawBridge 调用平台统一模型路由
+ *   2. 直连模式（fallback）— 直接调用 OpenAI 兼容 API
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AIProvider = void 0;
 exports.createAIProvider = createAIProvider;
+const qeeclaw_client_1 = require("../qeeclaw/qeeclaw-client");
 class AIProvider {
     constructor(config) {
         this.config = config;
         this.defaultModel = config.defaultModel;
     }
+    // ─── 平台优先的便捷方法 ──────────────────────
     /**
-     * 聊天补全
+     * 尝试通过 QeeClaw 平台调用模型，失败则 fallback 到直连
      */
     async chat(messages, options = {}) {
+        // 尝试平台路由
+        try {
+            const bridge = qeeclaw_client_1.QeeClawBridge.get();
+            if (bridge.online) {
+                // 将 messages 拼成单个 prompt 给 SDK invoke
+                const prompt = messages.map(m => {
+                    if (m.role === 'system')
+                        return `[System] ${m.content}`;
+                    if (m.role === 'user')
+                        return `[User] ${m.content}`;
+                    return `[Assistant] ${m.content}`;
+                }).join('\n\n');
+                const result = await bridge.invokeModel(prompt, options.model);
+                return result.text;
+            }
+        }
+        catch {
+            // bridge 未初始化或平台不可达，走 fallback
+        }
+        return this.chatDirect(messages, options);
+    }
+    /**
+     * 直连 OpenAI 兼容 API（fallback 路径）
+     */
+    async chatDirect(messages, options = {}) {
         const model = options.model || this.defaultModel;
         const temperature = options.temperature ?? 0.7;
         const maxTokens = options.maxTokens ?? 4096;
@@ -40,7 +69,7 @@ class AIProvider {
         return data.choices[0]?.message?.content || '';
     }
     /**
-     * 流式聊天补全
+     * 流式聊天补全（仅直连模式，平台暂不支持流式）
      */
     async *chatStream(messages, options = {}) {
         const model = options.model || this.defaultModel;
@@ -150,15 +179,9 @@ class AIProvider {
         const data = await response.json();
         return data.data.map((item) => item.embedding);
     }
-    /**
-     * 获取当前模型
-     */
     getCurrentModel() {
         return this.defaultModel;
     }
-    /**
-     * 切换模型
-     */
     setModel(model) {
         this.defaultModel = model;
     }

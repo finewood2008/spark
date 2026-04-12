@@ -152,20 +152,8 @@ function calcCompleteness(brand: Brand): number {
 }
 
 export const useBrandStore = create<BrandStore>((set, get) => ({
-  brands: [
-    // 默认示例品牌
-    {
-      id: 'brand_demo',
-      name: '示例品牌',
-      brandColor: '#8B5A2B',
-      active: true,
-      createdAt: new Date().toISOString(),
-      vi: createEmptyVI(),
-      dictionary: createEmptyDictionary(),
-      completeness: 0,
-    }
-  ],
-  activeBrandId: 'brand_demo',
+  brands: [],
+  activeBrandId: null,
 
   getActiveBrand: () => {
     const { brands, activeBrandId } = get();

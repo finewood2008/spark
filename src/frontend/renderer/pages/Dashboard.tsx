@@ -26,7 +26,8 @@ export function Dashboard({ brandId }: Props) {
   const handleGenerate = async (topic: string) => {
     setIsGenerating(true);
     try {
-      await window.spark?.content?.generate?.({ topic, platform });
+      // 模拟内容生成（实际由 Agent IPC 处理）
+      // await window.spark?.content?.generate?.({ topic, platform });
       setTimeout(() => {
         setContent({
           id: Date.now().toString(),

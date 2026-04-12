@@ -1,12 +1,14 @@
 /**
  * RAGEngine - 检索增强生成引擎
  * 
- * 负责企业知识库的构建、索引和检索
+ * 双模式：
+ *   1. QeeClaw 平台模式 — 通过 SDK knowledge 模块做向量检索
+ *   2. 本地模式（fallback）— 关键词匹配 + 本地文件索引
  */
 
 import * as path from 'path';
 import * as fs from 'fs-extra';
-import { Embeddings } from '../tools/Embeddings';
+import { QeeClawBridge } from '../qeeclaw/qeeclaw-client';
 
 export interface SearchResult {
   content: string;
@@ -29,61 +31,104 @@ export class RAGEngine {
   private dataPath: string;
   private collectionName: string;
   private documents: Map<string, IndexedDocument>;
-  private embeddings: Embeddings | null;
 
-  constructor(dataPath: string, embeddings: Embeddings | null = null) {
+  constructor(dataPath: string) {
     this.dataPath = dataPath;
     this.collectionName = 'spark_knowledge';
     this.documents = new Map();
-    this.embeddings = embeddings;
   }
 
-  /**
-   * 初始化知识库
-   */
+  // ─── 平台辅助 ──────────────────────────────────
+
+  private getBridge(): QeeClawBridge | null {
+    try {
+      const bridge = QeeClawBridge.get();
+      return bridge.online ? bridge : null;
+    } catch {
+      return null;
+    }
+  }
+
+  // ─── 初始化 ────────────────────────────────────
+
   async initialize(brandId: string): Promise<void> {
     await fs.ensureDir(this.dataPath);
     const indexPath = path.join(this.dataPath, `${brandId}_index.json`);
-    
+
     if (await fs.pathExists(indexPath)) {
       const data = await fs.readJson(indexPath);
       this.documents = new Map(Object.entries(data));
     }
   }
 
-  /**
-   * 添加文档到知识库
-   */
+  // ─── 文档管理 ──────────────────────────────────
+
   async addDocument(doc: IndexedDocument): Promise<void> {
     this.documents.set(doc.id, doc);
     await this.saveIndex();
+
+    // Sync to platform knowledge base (await so caller knows it completed)
+    const bridge = this.getBridge();
+    if (bridge) {
+      try {
+        await bridge.ingestKnowledge(doc.content, `spark_${doc.metadata.category}_${doc.id}`);
+      } catch (e) {
+        console.warn('[RAGEngine] Platform sync failed for doc', doc.id, e);
+      }
+    }
   }
 
-  /**
-   * 批量添加文档
-   */
   async addDocuments(docs: IndexedDocument[]): Promise<void> {
     for (const doc of docs) {
       this.documents.set(doc.id, doc);
     }
     await this.saveIndex();
+
+    // Sync all to platform (await each so caller knows they completed)
+    const bridge = this.getBridge();
+    if (bridge) {
+      for (const doc of docs) {
+        try {
+          await bridge.ingestKnowledge(doc.content, `spark_${doc.metadata.category}_${doc.id}`);
+        } catch (e) {
+          console.warn('[RAGEngine] Platform sync failed for doc', doc.id, e);
+        }
+      }
+    }
   }
 
-  /**
-   * 搜索知识库
-   */
+  // ─── 搜索（平台优先，本地 fallback） ──────────
+
   async search(query: string, topK: number = 5, brandId?: string): Promise<SearchResult[]> {
+    // 尝试平台向量检索
+    const bridge = this.getBridge();
+    if (bridge) {
+      try {
+        const platformResult = await bridge.searchKnowledge(query, topK) as Record<string, unknown>;
+        const items = (platformResult.results || platformResult.items || []) as Array<Record<string, unknown>>;
+        if (items.length > 0) {
+          return items.map((item) => ({
+            content: (item.content || item.text || '') as string,
+            metadata: (item.metadata || {}) as Record<string, unknown>,
+            score: (item.score || item.similarity || 0.8) as number,
+          }));
+        }
+      } catch {
+        // 平台检索失败，走本地
+      }
+    }
+
+    return this.searchLocal(query, topK, brandId);
+  }
+
+  /** 本地关键词匹配搜索 */
+  private searchLocal(query: string, topK: number = 5, brandId?: string): SearchResult[] {
     const results: SearchResult[] = [];
     const docs = Array.from(this.documents.values());
-
-    // 简单的关键词匹配搜索
-    // 实际生产中应该使用向量相似度搜索
     const queryWords = query.toLowerCase().split(/\s+/);
 
     for (const doc of docs) {
-      if (brandId && doc.metadata.brandId !== brandId) {
-        continue;
-      }
+      if (brandId && doc.metadata.brandId !== brandId) continue;
 
       const contentLower = doc.content.toLowerCase();
       let matchScore = 0;
@@ -91,7 +136,6 @@ export class RAGEngine {
       for (const word of queryWords) {
         if (contentLower.includes(word)) {
           matchScore += 1;
-          // 计算词频
           const regex = new RegExp(word, 'gi');
           const matches = contentLower.match(regex);
           if (matches) {
@@ -101,7 +145,6 @@ export class RAGEngine {
       }
 
       if (matchScore > 0) {
-        // 归一化分数
         const normalizedScore = Math.min(matchScore / queryWords.length, 1);
         results.push({
           content: doc.content,
@@ -111,15 +154,10 @@ export class RAGEngine {
       }
     }
 
-    // 按分数排序
     results.sort((a, b) => b.score - a.score);
-
     return results.slice(0, topK);
   }
 
-  /**
-   * 按类别搜索
-   */
   async searchByCategory(
     category: 'company' | 'product' | 'brand' | 'performance',
     brandId?: string
@@ -141,9 +179,6 @@ export class RAGEngine {
     return results;
   }
 
-  /**
-   * 删除文档
-   */
   async deleteDocument(docId: string): Promise<boolean> {
     const deleted = this.documents.delete(docId);
     if (deleted) {
@@ -152,12 +187,9 @@ export class RAGEngine {
     return deleted;
   }
 
-  /**
-   * 清空品牌知识库
-   */
   async clearBrand(brandId: string): Promise<void> {
     const toDelete: string[] = [];
-    
+
     for (const [id, doc] of this.documents.entries()) {
       if (doc.metadata.brandId === brandId) {
         toDelete.push(id);
@@ -171,15 +203,12 @@ export class RAGEngine {
     await this.saveIndex();
   }
 
-  /**
-   * 获取文档统计
-   */
   getStats(brandId?: string): {
     totalDocs: number;
     byCategory: Record<string, number>;
   } {
     const docs = Array.from(this.documents.values());
-    const filtered = brandId 
+    const filtered = brandId
       ? docs.filter(d => d.metadata.brandId === brandId)
       : docs;
 
@@ -195,9 +224,6 @@ export class RAGEngine {
     };
   }
 
-  /**
-   * 保存索引到磁盘
-   */
   private async saveIndex(): Promise<void> {
     const data = Object.fromEntries(this.documents);
     await fs.writeJson(
@@ -207,19 +233,13 @@ export class RAGEngine {
     );
   }
 
-  /**
-   * 导出知识库
-   */
   async exportKnowledge(brandId: string): Promise<string> {
     const docs = Array.from(this.documents.values())
       .filter(d => d.metadata.brandId === brandId);
-    
+
     return JSON.stringify(docs, null, 2);
   }
 
-  /**
-   * 导入知识库
-   */
   async importKnowledge(brandId: string, jsonStr: string): Promise<number> {
     try {
       const docs: IndexedDocument[] = JSON.parse(jsonStr);
@@ -244,9 +264,6 @@ export class RAGEngine {
     }
   }
 
-  /**
-   * 检查是否为空
-   */
   isEmpty(brandId?: string): boolean {
     if (!brandId) {
       return this.documents.size === 0;

@@ -2,7 +2,9 @@
 /**
  * RAGEngine - 检索增强生成引擎
  *
- * 负责企业知识库的构建、索引和检索
+ * 双模式：
+ *   1. QeeClaw 平台模式 — 通过 SDK knowledge 模块做向量检索
+ *   2. 本地模式（fallback）— 关键词匹配 + 本地文件索引
  */
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -41,6 +43,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RAGEngine = void 0;
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs-extra"));
+const qeeclaw_client_1 = require("../qeeclaw/qeeclaw-client");
 class RAGEngine {
     constructor(dataPath, embeddings = null) {
         this.dataPath = dataPath;
@@ -48,9 +51,17 @@ class RAGEngine {
         this.documents = new Map();
         this.embeddings = embeddings;
     }
-    /**
-     * 初始化知识库
-     */
+    // ─── 平台辅助 ──────────────────────────────────
+    getBridge() {
+        try {
+            const bridge = qeeclaw_client_1.QeeClawBridge.get();
+            return bridge.online ? bridge : null;
+        }
+        catch {
+            return null;
+        }
+    }
+    // ─── 初始化 ────────────────────────────────────
     async initialize(brandId) {
         await fs.ensureDir(this.dataPath);
         const indexPath = path.join(this.dataPath, `${brandId}_index.json`);
@@ -59,41 +70,64 @@ class RAGEngine {
             this.documents = new Map(Object.entries(data));
         }
     }
-    /**
-     * 添加文档到知识库
-     */
+    // ─── 文档管理 ──────────────────────────────────
     async addDocument(doc) {
         this.documents.set(doc.id, doc);
         await this.saveIndex();
+        // 异步同步到平台知识库
+        const bridge = this.getBridge();
+        if (bridge) {
+            bridge.ingestKnowledge(doc.content, `spark_${doc.metadata.category}_${doc.id}`).catch(() => { });
+        }
     }
-    /**
-     * 批量添加文档
-     */
     async addDocuments(docs) {
         for (const doc of docs) {
             this.documents.set(doc.id, doc);
         }
         await this.saveIndex();
+        // 批量同步
+        const bridge = this.getBridge();
+        if (bridge) {
+            for (const doc of docs) {
+                bridge.ingestKnowledge(doc.content, `spark_${doc.metadata.category}_${doc.id}`).catch(() => { });
+            }
+        }
     }
-    /**
-     * 搜索知识库
-     */
+    // ─── 搜索（平台优先，本地 fallback） ──────────
     async search(query, topK = 5, brandId) {
+        // 尝试平台向量检索
+        const bridge = this.getBridge();
+        if (bridge) {
+            try {
+                const platformResult = await bridge.searchKnowledge(query, topK);
+                const items = (platformResult.results || platformResult.items || []);
+                if (items.length > 0) {
+                    return items.map((item) => ({
+                        content: (item.content || item.text || ''),
+                        metadata: (item.metadata || {}),
+                        score: (item.score || item.similarity || 0.8),
+                    }));
+                }
+            }
+            catch {
+                // 平台检索失败，走本地
+            }
+        }
+        return this.searchLocal(query, topK, brandId);
+    }
+    /** 本地关键词匹配搜索 */
+    searchLocal(query, topK = 5, brandId) {
         const results = [];
         const docs = Array.from(this.documents.values());
-        // 简单的关键词匹配搜索
-        // 实际生产中应该使用向量相似度搜索
         const queryWords = query.toLowerCase().split(/\s+/);
         for (const doc of docs) {
-            if (brandId && doc.metadata.brandId !== brandId) {
+            if (brandId && doc.metadata.brandId !== brandId)
                 continue;
-            }
             const contentLower = doc.content.toLowerCase();
             let matchScore = 0;
             for (const word of queryWords) {
                 if (contentLower.includes(word)) {
                     matchScore += 1;
-                    // 计算词频
                     const regex = new RegExp(word, 'gi');
                     const matches = contentLower.match(regex);
                     if (matches) {
@@ -102,7 +136,6 @@ class RAGEngine {
                 }
             }
             if (matchScore > 0) {
-                // 归一化分数
                 const normalizedScore = Math.min(matchScore / queryWords.length, 1);
                 results.push({
                     content: doc.content,
@@ -111,13 +144,9 @@ class RAGEngine {
                 });
             }
         }
-        // 按分数排序
         results.sort((a, b) => b.score - a.score);
         return results.slice(0, topK);
     }
-    /**
-     * 按类别搜索
-     */
     async searchByCategory(category, brandId) {
         const docs = Array.from(this.documents.values());
         const results = [];
@@ -134,9 +163,6 @@ class RAGEngine {
         }
         return results;
     }
-    /**
-     * 删除文档
-     */
     async deleteDocument(docId) {
         const deleted = this.documents.delete(docId);
         if (deleted) {
@@ -144,9 +170,6 @@ class RAGEngine {
         }
         return deleted;
     }
-    /**
-     * 清空品牌知识库
-     */
     async clearBrand(brandId) {
         const toDelete = [];
         for (const [id, doc] of this.documents.entries()) {
@@ -159,9 +182,6 @@ class RAGEngine {
         }
         await this.saveIndex();
     }
-    /**
-     * 获取文档统计
-     */
     getStats(brandId) {
         const docs = Array.from(this.documents.values());
         const filtered = brandId
@@ -177,24 +197,15 @@ class RAGEngine {
             byCategory,
         };
     }
-    /**
-     * 保存索引到磁盘
-     */
     async saveIndex() {
         const data = Object.fromEntries(this.documents);
         await fs.writeJson(path.join(this.dataPath, `index.json`), data, { spaces: 2 });
     }
-    /**
-     * 导出知识库
-     */
     async exportKnowledge(brandId) {
         const docs = Array.from(this.documents.values())
             .filter(d => d.metadata.brandId === brandId);
         return JSON.stringify(docs, null, 2);
     }
-    /**
-     * 导入知识库
-     */
     async importKnowledge(brandId, jsonStr) {
         try {
             const docs = JSON.parse(jsonStr);
@@ -217,9 +228,6 @@ class RAGEngine {
             return 0;
         }
     }
-    /**
-     * 检查是否为空
-     */
     isEmpty(brandId) {
         if (!brandId) {
             return this.documents.size === 0;

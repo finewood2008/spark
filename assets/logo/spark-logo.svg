@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
+  <defs>
+    <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="30%" stop-color="#FFDD44"/>
+      <stop offset="70%" stop-color="#FF8C00"/>
+      <stop offset="100%" stop-color="#FF5500" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="coreCenter" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="60%" stop-color="#FFD700"/>
+      <stop offset="100%" stop-color="#FF6B00"/>
+    </radialGradient>
+    <linearGradient id="sparkGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FF6B00"/>
+      <stop offset="100%" stop-color="#FFAB00"/>
+    </linearGradient>
+  </defs>
+  <rect width="500" height="500" fill="#FFFFFF"/>
+
+  <g transform="translate(250,195)">
+    <!-- 外层光晕 — 爆炸扩散感 -->
+    <circle cx="0" cy="0" r="72" fill="url(#coreGlow)" opacity="0.35"/>
+
+    <!-- 迸射光线 — 12条不等长射线，模拟爆炸冲击 -->
+    <g stroke="url(#sparkGrad)" stroke-linecap="round" fill="none">
+      <line x1="0" y1="-28" x2="0" y2="-88" stroke-width="3.5"/>
+      <line x1="0" y1="28" x2="0" y2="85" stroke-width="3"/>
+      <line x1="-28" y1="0" x2="-82" y2="0" stroke-width="3"/>
+      <line x1="28" y1="0" x2="90" y2="0" stroke-width="3.5"/>
+
+      <line x1="-20" y1="-20" x2="-62" y2="-62" stroke-width="2.8"/>
+      <line x1="20" y1="-20" x2="65" y2="-58" stroke-width="2.5"/>
+      <line x1="-20" y1="20" x2="-58" y2="65" stroke-width="2.5"/>
+      <line x1="20" y1="20" x2="60" y2="60" stroke-width="2.8"/>
+
+      <!-- 次级短射线 -->
+      <line x1="-12" y1="-26" x2="-35" y2="-78" stroke-width="1.8"/>
+      <line x1="12" y1="-26" x2="38" y2="-75" stroke-width="1.8"/>
+      <line x1="-26" y1="12" x2="-75" y2="35" stroke-width="1.8"/>
+      <line x1="26" y1="12" x2="78" y2="32" stroke-width="1.8"/>
+    </g>
+
+    <!-- 飞溅火花粒子 — 爆炸碎片 -->
+    <circle cx="-72" cy="-48" r="3.5" fill="#FF6B00"/>
+    <circle cx="75" cy="-40" r="3" fill="#FFAB00"/>
+    <circle cx="-55" cy="58" r="2.8" fill="#FF8C00"/>
+    <circle cx="62" cy="55" r="3.2" fill="#FF6B00"/>
+    <circle cx="0" cy="-95" r="2.5" fill="#FFAB00"/>
+    <circle cx="92" cy="5" r="2.8" fill="#FF8C00"/>
+    <circle cx="-88" cy="-5" r="2.5" fill="#FFAB00"/>
+    <circle cx="42" cy="-72" r="2" fill="#FFD700"/>
+    <circle cx="-40" cy="-75" r="2.2" fill="#FFD700"/>
+    <circle cx="0" cy="90" r="2.5" fill="#FF8C00"/>
+
+    <!-- 核心 — 高亮爆炸中心 -->
+    <circle cx="0" cy="0" r="22" fill="url(#coreCenter)"/>
+    <circle cx="0" cy="0" r="10" fill="#FFFFFF" opacity="0.9"/>
+  </g>
+
+  <!-- 品牌名 -->
+  <text x="250" y="382" font-family="'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="44" fill="#333333" text-anchor="middle" font-weight="700">火花</text>
+  <text x="250" y="420" font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" font-size="16" fill="#FF6B00" text-anchor="middle" letter-spacing="6" font-weight="600">SPARK</text>
+</svg>

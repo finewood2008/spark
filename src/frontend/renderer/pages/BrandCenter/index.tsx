@@ -9,7 +9,7 @@ import { useBrandStore, Brand } from '../../store/brandStore';
 import { BrandSwitcher } from './BrandSwitcher';
 import { TabVisual } from './TabVisual';
 import { TabDictionary } from './TabDictionary';
-import { TabMarket } from './TabMarket';
+import { TabMarket } from './market';
 
 type TabId = 'visual' | 'dictionary' | 'market';
 

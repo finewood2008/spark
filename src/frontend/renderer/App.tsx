@@ -13,9 +13,11 @@ import { Settings } from './pages/Settings';
 import { CanvasWorkspace } from './components/CanvasWorkspace';
 import { BrandCenter } from './pages/BrandCenter';
 import { AIWorkspace } from './pages/AIWorkspace';
+import { ContentStudio } from './pages/ContentStudio';
+import { VideoStudio } from './pages/VideoStudio';
 import './styles/globals.css';
 
-export type PageMode = 'brand_center' | 'ai_workspace' | 'knowledge' | 'publish' | 'settings';
+export type PageMode = 'brand_center' | 'ai_workspace' | 'content_studio' | 'video_studio' | 'knowledge' | 'publish' | 'settings';
 
 export function App() {
   const [currentPage, setCurrentPage] = useState<PageMode>('ai_workspace');
@@ -24,12 +26,14 @@ export function App() {
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'brand_center': return <BrandCenter />;
-      case 'ai_workspace': return <AIWorkspace />;
-      case 'knowledge':    return <KnowledgeBase brandId={brandId} />;
-      case 'publish':      return <Publish brandId={brandId} />;
-      case 'settings':     return <Settings />;
-      default: return <BrandCenter />;
+      case 'brand_center':   return <BrandCenter />;
+      case 'ai_workspace':   return <AIWorkspace />;
+      case 'content_studio': return <ContentStudio />;
+      case 'video_studio':   return <VideoStudio />;
+      case 'knowledge':      return <KnowledgeBase brandId={brandId} />;
+      case 'publish':        return <Publish brandId={brandId} />;
+      case 'settings':       return <Settings />;
+      default: return <AIWorkspace />;
     }
   };
 
@@ -45,7 +49,7 @@ export function App() {
           data: payload,
         },
       ]);
-      setCurrentPage('preview');
+      setCurrentPage('ai_workspace');
     }
   };
 
@@ -62,7 +66,7 @@ export function App() {
       </main>
 
       {/* 悬浮 AI 对话框（AI 工作台自带对话面板，不重复显示） */}
-      {currentPage !== 'ai_workspace' && (
+      {currentPage !== 'ai_workspace' && currentPage !== 'content_studio' && currentPage !== 'video_studio' && (
         <FloatingChat
           currentPage={currentPage as PageContext}
           onAction={handleChatAction}

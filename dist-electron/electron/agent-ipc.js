@@ -38,7 +38,8 @@ const electron_1 = require("electron");
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs-extra"));
 const openai_1 = require("openai");
-// 这是一个极其简易的本地文件存取库，用来存储用户教给 Agent 的新知识（即进化逻辑）
+const qeeclaw_client_1 = require("../backend/qeeclaw/qeeclaw-client");
+// ─── 本地记忆文件（轻量 fallback） ──────────────
 const MEMORY_PATH = path.join(electron_1.app.getPath('userData'), 'agent_memory.json');
 function loadMemory() {
     try {
@@ -56,12 +57,11 @@ function saveMemory(knowledge) {
     mem.push(knowledge);
     fs.writeJsonSync(MEMORY_PATH, mem);
 }
-// 模拟读取项目的 harness 规范 (我们之前建的那些文件)
+// 模拟读取项目的 harness 规范
 function getHarnessContext() {
     try {
-        const workspaceDir = path.join(process.cwd(), 'harness'); // 假设当前在项目根目录
+        const workspaceDir = path.join(process.cwd(), 'harness');
         let context = "";
-        // 如果文件存在就读取并注入提示词
         const standardsPath = path.join(workspaceDir, 'standards', 'brand_voice.md');
         if (fs.existsSync(standardsPath)) {
             context += `\n[品牌文案规范]\n${fs.readFileSync(standardsPath, 'utf8')}\n`;
@@ -80,10 +80,33 @@ function getHarnessContext() {
         return "";
     }
 }
+// ─── QeeClaw 平台初始化 ─────────────────────────
+async function initQeeClawBridge() {
+    const baseUrl = process.env.QEECLAW_BASE_URL || 'https://api.qeeclaw.com';
+    const token = process.env.QEECLAW_TOKEN || '';
+    const teamId = parseInt(process.env.QEECLAW_TEAM_ID || '0', 10);
+    if (!token || !teamId) {
+        console.log('[agent-ipc] QeeClaw 未配置 (QEECLAW_TOKEN / QEECLAW_TEAM_ID)，使用纯本地模式');
+        return false;
+    }
+    try {
+        const config = { baseUrl, token, teamId };
+        const bridge = await qeeclaw_client_1.QeeClawBridge.init(config);
+        const online = await bridge.ping();
+        console.log(`[agent-ipc] QeeClaw 平台 ${online ? '已连接' : '不可达，降级本地模式'}`);
+        return online;
+    }
+    catch (e) {
+        console.warn('[agent-ipc] QeeClaw 初始化失败:', e);
+        return false;
+    }
+}
+// ─── 主入口 ──────────────────────────────────────
 function setupRealAgentIPC() {
-    // 这里使用 OpenAI SDK 来调用 DeepSeek 或兼容的模型
+    // 异步初始化平台（不阻塞 IPC 注册）
+    initQeeClawBridge().catch(() => { });
     const openai = new openai_1.OpenAI({
-        apiKey: process.env.DEEPSEEK_API_KEY || 'sk-3f4124ba166144e590afb20ffeb23789', // 你可以换成你自己的
+        apiKey: process.env.DEEPSEEK_API_KEY || 'sk-3f4...3789',
         baseURL: 'https://api.deepseek.com/v1',
     });
     let conversationHistory = [];
@@ -91,19 +114,38 @@ function setupRealAgentIPC() {
     electron_1.ipcMain.handle('agent:chat', async (_, message) => {
         try {
             console.log(`[IPC] Sending message to LLM API: ${message}`);
-            // 如果用户的话里包含明确的反馈指令（比如 "记住", "下次不要" 等），触发进化机制
+            // 进化机制：关键词触发记忆存储
             if (message.includes("记住") || message.includes("下次") || message.includes("以后")) {
                 saveMemory(message);
+                // 同步到平台记忆
+                try {
+                    const bridge = qeeclaw_client_1.QeeClawBridge.get();
+                    if (bridge.online) {
+                        await bridge.storeMemory(message, 'preference', 8);
+                    }
+                }
+                catch { /* 平台不可用 */ }
                 return {
                     success: true,
                     type: 'text',
                     message: '好的！我已经把这个偏好存入我的永久记忆库了，以后生成内容时我都会遵守这个规则。'
                 };
             }
-            // ==========================================
-            // 核心：组装包含 Harness 和 Memory 的超级提示词
-            // ==========================================
+            // ─── 组装超级提示词 ─────────────────
             const memoryList = loadMemory();
+            // 尝试从平台拉取相关记忆
+            let platformMemoryContext = '';
+            try {
+                const bridge = qeeclaw_client_1.QeeClawBridge.get();
+                if (bridge.online) {
+                    const platformMems = await bridge.searchMemory(message, 5);
+                    if (platformMems.length > 0) {
+                        const items = platformMems.map(m => `- ${m.content || JSON.stringify(m)}`).join('\n');
+                        platformMemoryContext = `\n\n【平台记忆检索结果】\n${items}`;
+                    }
+                }
+            }
+            catch { /* 平台不可用 */ }
             const memoryContext = memoryList.length > 0
                 ? `\n\n【用户个人的偏好与记忆（最高优先级规则）】\n${memoryList.map(m => `- ${m}`).join('\n')}`
                 : '';
@@ -126,19 +168,42 @@ function setupRealAgentIPC() {
 如果你认为只是普通对话或需要继续澄清需求，请直接回复纯文本。
 
 【系统基础规范与工作流加载区】${harnessContext}
-${memoryContext}`;
+${memoryContext}${platformMemoryContext}`;
             if (conversationHistory.length === 0) {
                 conversationHistory.push({ role: 'system', content: systemPrompt });
             }
             conversationHistory.push({ role: 'user', content: message });
-            const completion = await openai.chat.completions.create({
-                messages: conversationHistory,
-                model: 'deepseek-chat',
-                temperature: 0.7,
-            });
-            const reply = completion.choices[0].message.content || '';
+            // 尝试通过平台模型路由调用
+            let reply = '';
+            let usedPlatform = false;
+            try {
+                const bridge = qeeclaw_client_1.QeeClawBridge.get();
+                if (bridge.online) {
+                    const prompt = conversationHistory.map(m => {
+                        if (m.role === 'system')
+                            return `[System] ${m.content}`;
+                        if (m.role === 'user')
+                            return `[User] ${m.content}`;
+                        return `[Assistant] ${m.content}`;
+                    }).join('\n\n');
+                    const result = await bridge.invokeModel(prompt);
+                    reply = result.text;
+                    usedPlatform = true;
+                }
+            }
+            catch {
+                // 平台调用失败，走 DeepSeek 直连
+            }
+            if (!usedPlatform) {
+                const completion = await openai.chat.completions.create({
+                    messages: conversationHistory,
+                    model: 'deepseek-chat',
+                    temperature: 0.7,
+                });
+                reply = completion.choices[0].message.content || '';
+            }
             conversationHistory.push({ role: 'assistant', content: reply });
-            // 尝试解析是否为 JSON 卡片格式
+            // 尝试解析 JSON 卡片
             try {
                 if (reply.trim().startsWith('{') && reply.trim().endsWith('}')) {
                     const parsed = JSON.parse(reply.trim());
@@ -153,7 +218,7 @@ ${memoryContext}`;
                 }
             }
             catch (e) {
-                // 如果解析失败，说明大模型返回的只是普通文本
+                // 普通文本
             }
             return {
                 success: true,
@@ -162,19 +227,27 @@ ${memoryContext}`;
             };
         }
         catch (error) {
+            const errMsg = error instanceof Error ? error.message : String(error);
             console.error('[Agent IPC Error]', error);
             return {
                 success: false,
                 type: 'text',
-                message: `处理请求时发生错误: ${error.message}`
+                message: `处理请求时发生错误: ${errMsg}`
             };
         }
     });
     electron_1.ipcMain.removeHandler('agent:feedback');
     electron_1.ipcMain.handle('agent:feedback', async (_, contentId, action, text) => {
         if (action === 'reject' && text) {
-            // 隐性进化逻辑：当用户在 UI 上点击“不满意”并写下理由时，自动存入记忆库
             saveMemory(`对于生成的文案，用户曾反馈不满意：${text}`);
+            // 同步到平台
+            try {
+                const bridge = qeeclaw_client_1.QeeClawBridge.get();
+                if (bridge.online) {
+                    await bridge.storeMemory(`[reject] ${text}`, 'decision', 8);
+                }
+            }
+            catch { /* 平台不可用 */ }
         }
         return { success: true };
     });

@@ -1,7 +1,8 @@
 /**
- * preload.ts - 预加载脚本
+ * preload.ts - 预加载脚本（前端入口版本）
  * 
  * 在浏览器和 Node.js 之间建立安全的通信桥接
+ * 注意：Window.spark 类型声明统一在 src/electron/preload.ts 中定义
  */
 
 import { contextBridge, ipcRenderer } from 'electron';
@@ -33,28 +34,3 @@ contextBridge.exposeInMainWorld('spark', {
     getVersion: () => ipcRenderer.invoke('app:getVersion'),
   },
 });
-
-// 类型声明
-declare global {
-  interface Window {
-    spark: {
-      knowledge: {
-        create: (brandId: string) => Promise<{ success: boolean }>;
-        query: (brandId: string, query: string) => Promise<unknown>;
-      };
-      content: {
-        generate: (params: {
-          topic: string;
-          platform: string;
-          style?: string;
-        }) => Promise<unknown>;
-      };
-      dialog: {
-        openFile: () => Promise<Electron.OpenDialogReturnValue>;
-      };
-      app: {
-        getVersion: () => Promise<string>;
-      };
-    };
-  }
-}

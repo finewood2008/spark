@@ -2,8 +2,11 @@
 /**
  * MemorySystem - 记忆与自我进化系统
  *
+ * 双模式：
+ *   1. QeeClaw 平台模式 — 通过 SDK memory 模块同步到云端
+ *   2. 本地模式（fallback）— 文件存储
+ *
  * 学习用户偏好，积累品牌知识，实现越用越懂你
- * 支持与 Hermes Agent 的底层 memory 工具交互理念
  */
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -43,6 +46,7 @@ exports.MemorySystem = void 0;
 const fs = __importStar(require("fs-extra"));
 const path = __importStar(require("path"));
 const uuid_1 = require("uuid");
+const qeeclaw_client_1 = require("../qeeclaw/qeeclaw-client");
 class MemorySystem {
     constructor(dataPath) {
         this.dataPath = dataPath;
@@ -58,16 +62,50 @@ class MemorySystem {
             brandMemories: {}, interactionHistory: [],
         };
     }
+    // ─── 平台同步辅助 ──────────────────────────────
+    getBridge() {
+        try {
+            const bridge = qeeclaw_client_1.QeeClawBridge.get();
+            return bridge.online ? bridge : null;
+        }
+        catch {
+            return null;
+        }
+    }
+    /** 将本地记忆条目同步到平台 */
+    async syncToPlatform(content, category = 'preference', importance = 5) {
+        const bridge = this.getBridge();
+        if (!bridge)
+            return;
+        try {
+            await bridge.storeMemory(content, category, importance);
+        }
+        catch (e) {
+            console.warn('[MemorySystem] 平台同步失败，仅保留本地:', e);
+        }
+    }
+    /** 从平台搜索记忆 */
+    async searchPlatformMemory(query, limit = 10) {
+        const bridge = this.getBridge();
+        if (!bridge)
+            return [];
+        try {
+            return await bridge.searchMemory(query, limit);
+        }
+        catch {
+            return [];
+        }
+    }
+    // ─── 核心方法（保持原有接口不变） ─────────────
     async recordInteraction(record) {
         const interaction = { ...record, id: (0, uuid_1.v4)(), timestamp: new Date().toISOString() };
         this.memoryData.interactionHistory.push(interaction);
         if (this.memoryData.interactionHistory.length > 1000)
             this.memoryData.interactionHistory = this.memoryData.interactionHistory.slice(-1000);
         await this.save();
+        // 异步同步到平台（不阻塞）
+        this.syncToPlatform(`[interaction] ${record.type}: ${record.intent}`, 'fact', 3).catch(() => { });
     }
-    /**
-     * 记录反馈，触发自我进化机制
-     */
     async recordFeedback(contentId, action, feedback, diffSummary) {
         const record = {
             id: (0, uuid_1.v4)(), contentId, action, feedback, diffSummary, createdAt: new Date().toISOString(),
@@ -77,25 +115,22 @@ class MemorySystem {
             this.memoryData.preferences.feedbackHistory = this.memoryData.preferences.feedbackHistory.slice(-500);
         this.memoryData.preferences.updatedAt = new Date().toISOString();
         await this.save();
-        // 触发自我进化：提取规则
         if (feedback || diffSummary) {
             await this.adjustPreferences(action, feedback, diffSummary);
         }
+        // 同步反馈到平台
+        const syncContent = `[feedback:${action}] ${feedback || diffSummary || contentId}`;
+        const category = action === 'reject' ? 'decision' : 'preference';
+        this.syncToPlatform(syncContent, category, action === 'reject' ? 8 : 5).catch(() => { });
     }
-    /**
-     * 自我进化核心逻辑：根据用户反馈调整全局 Prompt 注入库
-     */
     async adjustPreferences(action, feedback, diffSummary) {
-        // 简单提取逻辑，后续可接 LLM 意图提炼
         const prefs = this.memoryData.preferences;
         if (action === 'reject' && feedback) {
-            // 用户明确拒绝，提取负向提示
             prefs.negativePrompts.push(feedback);
             if (prefs.negativePrompts.length > 20)
                 prefs.negativePrompts.shift();
         }
         if (action === 'edit' && feedback) {
-            // 用户修改了，可能是纠正 Tone，既有可能是正向，也有负向，这里先加入正向规则要求
             prefs.positivePrompts.push(`用户更正: ${feedback}`);
             if (prefs.positivePrompts.length > 20)
                 prefs.positivePrompts.shift();
@@ -127,6 +162,8 @@ class MemorySystem {
         const brandMemory = { ...brand, id: (0, uuid_1.v4)(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
         this.memoryData.brandMemories[brandMemory.id] = brandMemory;
         await this.save();
+        // 品牌信息同步到平台（高重要性）
+        this.syncToPlatform(`[brand] ${brand.name} | ${brand.industry} | voice: ${brand.voice}`, 'entity', 9).catch(() => { });
         return brandMemory;
     }
     getBrandMemory(brandId) { return this.memoryData.brandMemories[brandId] || null; }
