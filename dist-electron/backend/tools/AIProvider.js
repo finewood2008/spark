@@ -10,6 +10,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AIProvider = void 0;
 exports.createAIProvider = createAIProvider;
 const qeeclaw_client_1 = require("../qeeclaw/qeeclaw-client");
+// Gemini Proxy — temporary OpenAI-compatible relay (no key required)
+const GEMINI_PROXY_URL = 'https://gemini-proxy.finewood2008.workers.dev/v1';
+const GEMINI_DEFAULT_MODEL = 'gemini-2.0-flash';
 class AIProvider {
     constructor(config) {
         this.config = config;
@@ -42,17 +45,19 @@ class AIProvider {
         return this.chatDirect(messages, options);
     }
     /**
-     * 直连 OpenAI 兼容 API（fallback 路径）
+     * 直连 Gemini Proxy（fallback 路径）
+     * Gemini Proxy fallback — routes through proxy when SDK is unavailable
      */
     async chatDirect(messages, options = {}) {
-        const model = options.model || this.defaultModel;
+        const model = options.model || GEMINI_DEFAULT_MODEL;
         const temperature = options.temperature ?? 0.7;
         const maxTokens = options.maxTokens ?? 4096;
-        const response = await fetch(`${this.config.baseUrl}/chat/completions`, {
+        // Gemini Proxy fallback
+        const response = await fetch(`${GEMINI_PROXY_URL}/chat/completions`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.config.apiKey}`,
+                'Authorization': 'Bearer dummy',
             },
             body: JSON.stringify({
                 model,
@@ -69,17 +74,37 @@ class AIProvider {
         return data.choices[0]?.message?.content || '';
     }
     /**
-     * 流式聊天补全（仅直连模式，平台暂不支持流式）
+     * 流式聊天补全 — SDK 优先，Gemini Proxy 兜底
      */
     async *chatStream(messages, options = {}) {
-        const model = options.model || this.defaultModel;
+        // 1️⃣ 尝试平台 SDK（目前 SDK 不支持流式，预留接口）
+        try {
+            const bridge = qeeclaw_client_1.QeeClawBridge.get();
+            if (bridge.online) {
+                const prompt = messages.map(m => {
+                    if (m.role === 'system')
+                        return `[System] ${m.content}`;
+                    if (m.role === 'user')
+                        return `[User] ${m.content}`;
+                    return `[Assistant] ${m.content}`;
+                }).join('\n\n');
+                const result = await bridge.invokeModel(prompt, options.model);
+                yield result.text;
+                return;
+            }
+        }
+        catch {
+            // bridge 不可用，走 Gemini Proxy fallback
+        }
+        // Gemini Proxy streaming fallback
+        const model = options.model || GEMINI_DEFAULT_MODEL;
         const temperature = options.temperature ?? 0.7;
         const maxTokens = options.maxTokens ?? 4096;
-        const response = await fetch(`${this.config.baseUrl}/chat/completions`, {
+        const response = await fetch(`${GEMINI_PROXY_URL}/chat/completions`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.config.apiKey}`,
+                'Authorization': 'Bearer dummy',
             },
             body: JSON.stringify({
                 model,
@@ -127,17 +152,30 @@ class AIProvider {
         }
     }
     /**
-     * 图像理解（Vision）
+     * 图像理解（Vision）— SDK 优先，Gemini Proxy 兜底
      */
     async vision(imageUrl, prompt) {
-        const response = await fetch(`${this.config.baseUrl}/chat/completions`, {
+        // 1️⃣ 尝试平台 SDK
+        try {
+            const bridge = qeeclaw_client_1.QeeClawBridge.get();
+            if (bridge.online) {
+                const visionPrompt = `[Vision Task]\nImage: ${imageUrl}\n\n${prompt}`;
+                const result = await bridge.invokeModel(visionPrompt);
+                return result.text;
+            }
+        }
+        catch {
+            // bridge 不可用，走 Gemini Proxy fallback
+        }
+        // Gemini Proxy vision fallback
+        const response = await fetch(`${GEMINI_PROXY_URL}/chat/completions`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.config.apiKey}`,
+                'Authorization': 'Bearer dummy',
             },
             body: JSON.stringify({
-                model: this.defaultModel,
+                model: GEMINI_DEFAULT_MODEL,
                 messages: [
                     {
                         role: 'user',
@@ -158,17 +196,28 @@ class AIProvider {
         return data.choices[0]?.message?.content || '';
     }
     /**
-     * 文本嵌入
+     * 文本嵌入 — SDK 优先，Gemini Proxy 兜底
      */
     async embed(texts) {
-        const response = await fetch(`${this.config.baseUrl}/embeddings`, {
+        // 1️⃣ 尝试平台 SDK
+        try {
+            const bridge = qeeclaw_client_1.QeeClawBridge.get();
+            if (bridge.online && typeof bridge.embed === 'function') {
+                return await bridge.embed(texts);
+            }
+        }
+        catch {
+            // bridge 不可用，走 Gemini Proxy fallback
+        }
+        // Gemini Proxy embeddings fallback
+        const response = await fetch(`${GEMINI_PROXY_URL}/embeddings`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.config.apiKey}`,
+                'Authorization': 'Bearer dummy',
             },
             body: JSON.stringify({
-                model: 'text-embedding-3-large',
+                model: 'text-embedding-004',
                 input: texts,
             }),
         });

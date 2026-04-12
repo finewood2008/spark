@@ -45,11 +45,10 @@ const path = __importStar(require("path"));
 const fs = __importStar(require("fs-extra"));
 const qeeclaw_client_1 = require("../qeeclaw/qeeclaw-client");
 class RAGEngine {
-    constructor(dataPath, embeddings = null) {
+    constructor(dataPath) {
         this.dataPath = dataPath;
         this.collectionName = 'spark_knowledge';
         this.documents = new Map();
-        this.embeddings = embeddings;
     }
     // ─── 平台辅助 ──────────────────────────────────
     getBridge() {
@@ -74,10 +73,15 @@ class RAGEngine {
     async addDocument(doc) {
         this.documents.set(doc.id, doc);
         await this.saveIndex();
-        // 异步同步到平台知识库
+        // Sync to platform knowledge base (await so caller knows it completed)
         const bridge = this.getBridge();
         if (bridge) {
-            bridge.ingestKnowledge(doc.content, `spark_${doc.metadata.category}_${doc.id}`).catch(() => { });
+            try {
+                await bridge.ingestKnowledge(doc.content, `spark_${doc.metadata.category}_${doc.id}`);
+            }
+            catch (e) {
+                console.warn('[RAGEngine] Platform sync failed for doc', doc.id, e);
+            }
         }
     }
     async addDocuments(docs) {
@@ -85,11 +89,16 @@ class RAGEngine {
             this.documents.set(doc.id, doc);
         }
         await this.saveIndex();
-        // 批量同步
+        // Sync all to platform (await each so caller knows they completed)
         const bridge = this.getBridge();
         if (bridge) {
             for (const doc of docs) {
-                bridge.ingestKnowledge(doc.content, `spark_${doc.metadata.category}_${doc.id}`).catch(() => { });
+                try {
+                    await bridge.ingestKnowledge(doc.content, `spark_${doc.metadata.category}_${doc.id}`);
+                }
+                catch (e) {
+                    console.warn('[RAGEngine] Platform sync failed for doc', doc.id, e);
+                }
             }
         }
     }

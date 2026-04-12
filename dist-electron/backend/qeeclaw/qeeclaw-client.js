@@ -109,6 +109,18 @@ class QeeClawBridge {
     get models() { return this.sdk.models; }
     get conversations() { return this.sdk.conversations; }
     get channels() { return this.sdk.channels; }
+    get billing() { return this.sdk.billing; }
+    get iam() { return this.sdk.iam; }
+    get apikey() { return this.sdk.apikey; }
+    get tenant() { return this.sdk.tenant; }
+    get devices() { return this.sdk.devices; }
+    get audit() { return this.sdk.audit; }
+    get policy() { return this.sdk.policy; }
+    get approval() { return this.sdk.approval; }
+    get agent() { return this.sdk.agent; }
+    get file() { return this.sdk.file; }
+    get voice() { return this.sdk.voice; }
+    get workflow() { return this.sdk.workflow; }
     // ─── 带 teamId 的便捷方法 ──────────────────────
     /** 存储一条记忆 */
     async storeMemory(content, category, importance) {

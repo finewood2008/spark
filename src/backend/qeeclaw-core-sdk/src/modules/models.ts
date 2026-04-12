@@ -45,7 +45,7 @@ export interface ModelInvokeResult {
 }
 
 // ---------------------------------------------------------------------------
-// @TEMP_DIRECT - Types for streaming, vision, and embedding methods
+// Types for streaming, vision, and embedding methods (with Gemini Proxy fallback)
 // These support SDK-first with Gemini Proxy fallback while backend endpoints
 // are not yet implemented.
 // ---------------------------------------------------------------------------
@@ -338,7 +338,7 @@ interface RawModelQuotaSummary {
   updated_time?: string | null;
 }
 
-// @TEMP_DIRECT - Gemini proxy for fallback when SDK backend endpoints are unavailable
+// Gemini proxy constants — fallback when SDK backend endpoints are unavailable
 const GEMINI_PROXY_BASE = "https://gemini-proxy.finewood2008.workers.dev";
 const GEMINI_PROXY_HEADERS: Record<string, string> = {
   "Content-Type": "application/json",
@@ -546,7 +546,7 @@ export class ModelsModule {
   }
 
   // ---------------------------------------------------------------------------
-  // @TEMP_DIRECT - invokeStream / vision / embed
+  // invokeStream / vision / embed — with Gemini Proxy fallback
   // These methods try the SDK backend first. If the endpoint is not yet
   // implemented (404 / 501 / network error), they fall back to the Gemini
   // Proxy (OpenAI-compatible Cloudflare Worker).
@@ -556,7 +556,7 @@ export class ModelsModule {
    * Stream a chat completion. Returns an async generator that yields text
    * chunks as they arrive via SSE.
    *
-   * @TEMP_DIRECT — falls back to Gemini Proxy when the SDK backend endpoint
+   * Falls back to Gemini Proxy when the SDK backend endpoint
    * POST /api/platform/models/invoke/stream is unavailable.
    */
   async *invokeStream(
@@ -652,7 +652,7 @@ export class ModelsModule {
    * Multimodal (vision) completion — accepts messages with text and image_url
    * content parts.
    *
-   * @TEMP_DIRECT — falls back to Gemini Proxy when the SDK backend endpoint
+   * Falls back to Gemini Proxy when the SDK backend endpoint
    * POST /api/platform/models/vision is unavailable.
    */
   async vision(payload: ModelVisionRequest): Promise<ModelInvokeResult> {
@@ -708,7 +708,7 @@ export class ModelsModule {
   /**
    * Generate text embeddings for one or more input strings.
    *
-   * @TEMP_DIRECT — falls back to Gemini Proxy /v1/embeddings when the SDK
+   * Falls back to Gemini Proxy /v1/embeddings when the SDK
    * backend endpoint POST /api/platform/models/embed is unavailable.
    */
   async embed(payload: ModelEmbedRequest): Promise<ModelEmbedResult> {

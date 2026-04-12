@@ -208,14 +208,14 @@ export class ImageGenerator {
 
   /**
    * 调用图像生成 API
-   * @TEMP_DIRECT — 直连 Gemini Proxy；后续应通过 SDK 统一路由
+   * 直连 Gemini Proxy（SDK 未覆盖图片生成时的 fallback）
    */
   private async generateImage(prompt: string, filename: string): Promise<string> {
     try {
       await fs.ensureDir(this.outputPath);
       const filepath = path.join(this.outputPath, `${filename}.png`);
 
-      // @TEMP_DIRECT: 直接调用 Gemini Proxy DALL-E 兼容端点
+      // 调用 Gemini Proxy DALL-E 兼容端点
       const response = await fetch('https://gemini-proxy.finewood2008.workers.dev/v1/images/generations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -262,7 +262,7 @@ export class ImageGenerator {
 
   /**
    * 使用 Gemini Proxy 的图像生成能力（公共 API 方法）
-   * @TEMP_DIRECT — 直连 Gemini Proxy；后续应通过 SDK 统一路由
+   * 直连 Gemini Proxy（SDK 未覆盖图片生成时的 fallback）
    */
   async generateWithAPI(prompt: string, filename: string): Promise<string> {
     return this.generateImage(prompt, filename);

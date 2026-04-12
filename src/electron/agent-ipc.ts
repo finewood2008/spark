@@ -91,8 +91,7 @@ export function setupRealAgentIPC() {
     // 异步初始化平台（不阻塞 IPC 注册）
     initQeeClawBridge().catch(() => {});
 
-    // @TEMP_DIRECT — Eventually all model calls should go through QeeClaw SDK.
-    // For now, fall back to Gemini Proxy (OpenAI-compatible, no key needed).
+    // Gemini Proxy fallback — used when QeeClaw platform is unreachable.
     const openai = new OpenAI({
         apiKey: 'gemini-proxy-no-key-needed',
         baseURL: 'https://gemini-proxy.finewood2008.workers.dev/v1',

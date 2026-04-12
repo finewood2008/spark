@@ -77,7 +77,7 @@ export class AIProvider {
 
   /**
    * 直连 Gemini Proxy（fallback 路径）
-   * @TEMP_DIRECT — routes through Gemini Proxy until SDK covers all paths
+   * Gemini Proxy fallback — routes through proxy when SDK is unavailable
    */
   async chatDirect(
     messages: ChatMessage[],
@@ -91,7 +91,7 @@ export class AIProvider {
     const temperature = options.temperature ?? 0.7;
     const maxTokens = options.maxTokens ?? 4096;
 
-    // @TEMP_DIRECT — Gemini Proxy fallback
+    // Gemini Proxy fallback
     const response = await fetch(`${GEMINI_PROXY_URL}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -143,7 +143,7 @@ export class AIProvider {
       // bridge 不可用，走 Gemini Proxy fallback
     }
 
-    // 2️⃣ @TEMP_DIRECT — Gemini Proxy streaming fallback
+    // Gemini Proxy streaming fallback
     const model = options.model || GEMINI_DEFAULT_MODEL;
     const temperature = options.temperature ?? 0.7;
     const maxTokens = options.maxTokens ?? 4096;
@@ -223,7 +223,7 @@ export class AIProvider {
       // bridge 不可用，走 Gemini Proxy fallback
     }
 
-    // 2️⃣ @TEMP_DIRECT — Gemini Proxy vision fallback
+    // Gemini Proxy vision fallback
     const response = await fetch(`${GEMINI_PROXY_URL}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -268,7 +268,7 @@ export class AIProvider {
       // bridge 不可用，走 Gemini Proxy fallback
     }
 
-    // 2️⃣ @TEMP_DIRECT — Gemini Proxy embeddings fallback
+    // Gemini Proxy embeddings fallback
     const response = await fetch(`${GEMINI_PROXY_URL}/embeddings`, {
       method: 'POST',
       headers: {

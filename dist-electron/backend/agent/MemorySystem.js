@@ -142,7 +142,11 @@ class MemorySystem {
         }
         await this.save();
     }
-    getEvolutionDirectives() {
+    /**
+     * 获取进化指令：合并本地偏好 + 平台记忆
+     * 调用方如果在非 async 上下文可继续用同步签名（返回 Promise 也可 await）
+     */
+    async getEvolutionDirectives(query) {
         const prefs = this.memoryData.preferences;
         let directive = '';
         if (prefs.negativePrompts.length > 0) {
@@ -150,6 +154,21 @@ class MemorySystem {
         }
         if (prefs.positivePrompts.length > 0) {
             directive += `\n【成功经验(偏好)】:\n- ${prefs.positivePrompts.slice(-5).join('\n- ')}`;
+        }
+        // 从平台记忆中检索相关条目并合并
+        try {
+            const searchQuery = query || '用户偏好 品牌 风格';
+            const platformMems = await this.searchPlatformMemory(searchQuery, 5);
+            if (platformMems.length > 0) {
+                const items = platformMems.map(m => {
+                    const content = m.content || JSON.stringify(m);
+                    return `- ${content}`;
+                }).join('\n');
+                directive += `\n【平台记忆】:\n${items}`;
+            }
+        }
+        catch {
+            // 平台不可用，仅使用本地偏好
         }
         return directive;
     }

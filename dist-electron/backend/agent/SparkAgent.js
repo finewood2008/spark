@@ -93,7 +93,7 @@ class SparkAgent extends events_1.EventEmitter {
         const platform = intent.params?.platform || 'wechat';
         const style = intent.params?.style;
         // 自我进化：提取用户的隐含规则和要求
-        const evolutionDirectives = this.memorySystem.getEvolutionDirectives();
+        const evolutionDirectives = await this.memorySystem.getEvolutionDirectives(topic);
         const explicitRequirements = intent.params?.requirements || '';
         // 加载 Harness 规范（工作流、标准、自检清单）
         const harnessContext = await this.harnessLoader.getHarnessContext(intent.intent, platform);
