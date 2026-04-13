@@ -115,11 +115,31 @@ function setupRealAgentIPC() {
     // 异步初始化平台（不阻塞 IPC 注册）
     initQeeClawBridge().catch(() => { });
     // Gemini Proxy fallback — used when QeeClaw platform is unreachable.
-    const openai = new openai_1.OpenAI({
-        apiKey: 'gemini-proxy-no-key-needed',
-        baseURL: 'https://gemini-proxy.finewood2008.workers.dev/v1',
+    // 保底配置：使用 Cloudflare Worker 代理，密钥在打包环节通过 CI/CD 或 .env 注入，代码仓库不包含明文 Key
+    let openai = new openai_1.OpenAI({
+        apiKey: process.env.FALLBACK_API_KEY || 'gemini-proxy-no-key-needed',
+        baseURL: process.env.FALLBACK_BASE_URL || 'https://gemini-proxy.finewood2008.workers.dev/v1',
     });
+    let currentModel = 'gemini-3.1-pro-preview';
     let conversationHistory = [];
+    electron_1.ipcMain.removeHandler('agent:updateConfig');
+    electron_1.ipcMain.removeHandler('agent:updatePlatformConfig');
+    electron_1.ipcMain.handle('agent:updatePlatformConfig', async (_, config) => {
+        // 更新环境变量以供后续所有使用该环境变量的 QeeClawBridge 实例使用
+        process.env.QEECLAW_TOKEN = config.token;
+        process.env.QEECLAW_TEAM_ID = config.teamId;
+        console.log('[agent-ipc] 平台凭证已更新，Token:', config.token ? '已设置' : '未设置', 'TeamID:', config.teamId);
+        // 由于前端做了 location.reload(), Bridge 将随着页面刷新重置，因此只要环境变量有了即可
+        return { success: true };
+    });
+    electron_1.ipcMain.handle('agent:updateConfig', async (_, config) => {
+        openai = new openai_1.OpenAI({
+            baseURL: config.proxyUrl || process.env.FALLBACK_BASE_URL || 'https://gemini-proxy.finewood2008.workers.dev/v1',
+            apiKey: config.apiKey || process.env.FALLBACK_API_KEY || 'gemini-proxy-no-key-needed',
+        });
+        currentModel = config.model || 'gemini-3.1-pro-preview';
+        return { success: true };
+    });
     electron_1.ipcMain.removeHandler('agent:chat');
     electron_1.ipcMain.handle('agent:chat', async (_, message) => {
         try {
@@ -207,7 +227,7 @@ ${memoryContext}${platformMemoryContext}`;
             if (!usedPlatform) {
                 const completion = await openai.chat.completions.create({
                     messages: conversationHistory,
-                    model: 'gemini-2.0-flash',
+                    model: currentModel,
                     temperature: 0.7,
                 });
                 reply = completion.choices[0].message.content || '';
@@ -283,14 +303,10 @@ ${harnessContext}${memoryContext}`;
             // SDK 优先 → openai 直连 fallback
             let reply = '';
             try {
-                const bridge = qeeclaw_client_1.QeeClawBridge.get();
-                if (bridge.online) {
-                    const chunks = [];
-                    for await (const chunk of bridge.models.invokeStream({ messages, temperature: 0.8 })) {
-                        chunks.push(chunk);
-                    }
-                    reply = chunks.join('');
-                }
+                // temporarily disable QeeClaw model stream for chat to fallback to local openai client
+                // const bridge = QeeClawBridge.get();
+                // if (bridge.online) { ... }
+                throw new Error("force fallback");
             }
             catch {
                 // SDK 不可用，走 fallback
@@ -298,7 +314,7 @@ ${harnessContext}${memoryContext}`;
             if (!reply) {
                 const completion = await openai.chat.completions.create({
                     messages,
-                    model: 'gemini-2.0-flash',
+                    model: currentModel,
                     temperature: 0.8,
                 });
                 reply = completion.choices[0].message.content || '';
@@ -366,14 +382,10 @@ transition可选值：cut, fade, dissolve, slide_left, slide_right, zoom_in, zoo
             // SDK 优先 → openai 直连 fallback
             let reply = '';
             try {
-                const bridge = qeeclaw_client_1.QeeClawBridge.get();
-                if (bridge.online) {
-                    const chunks = [];
-                    for await (const chunk of bridge.models.invokeStream({ messages, temperature: 0.8 })) {
-                        chunks.push(chunk);
-                    }
-                    reply = chunks.join('');
-                }
+                // temporarily disable QeeClaw model stream for chat to fallback to local openai client
+                // const bridge = QeeClawBridge.get();
+                // if (bridge.online) { ... }
+                throw new Error("force fallback");
             }
             catch {
                 // SDK 不可用，走 fallback
@@ -381,7 +393,7 @@ transition可选值：cut, fade, dissolve, slide_left, slide_right, zoom_in, zoo
             if (!reply) {
                 const completion = await openai.chat.completions.create({
                     messages,
-                    model: 'gemini-2.0-flash',
+                    model: currentModel,
                     temperature: 0.8,
                 });
                 reply = completion.choices[0].message.content || '';
@@ -432,14 +444,10 @@ transition可选值：cut, fade, dissolve, slide_left, slide_right, zoom_in, zoo
             // SDK 优先 → openai 直连 fallback
             let reply = '';
             try {
-                const bridge = qeeclaw_client_1.QeeClawBridge.get();
-                if (bridge.online) {
-                    const chunks = [];
-                    for await (const chunk of bridge.models.invokeStream({ messages, temperature: 0.9 })) {
-                        chunks.push(chunk);
-                    }
-                    reply = chunks.join('');
-                }
+                // temporarily disable QeeClaw model stream for generate to fallback to local openai client
+                // const bridge = QeeClawBridge.get();
+                // if (bridge.online) { ... }
+                throw new Error("force fallback");
             }
             catch {
                 // SDK 不可用，走 fallback
@@ -447,7 +455,7 @@ transition可选值：cut, fade, dissolve, slide_left, slide_right, zoom_in, zoo
             if (!reply) {
                 const completion = await openai.chat.completions.create({
                     messages,
-                    model: 'gemini-2.0-flash',
+                    model: currentModel,
                     temperature: 0.9,
                 });
                 reply = completion.choices[0].message.content || '';
@@ -1223,6 +1231,111 @@ transition可选值：cut, fade, dissolve, slide_left, slide_right, zoom_in, zoo
         }
         catch (e) {
             return { success: false, error: e.message };
+        }
+    });
+    // ═══════════════════════════════════════════════════════════════════
+    //  GitHub 同步与 Issues 管理
+    // ═══════════════════════════════════════════════════════════════════
+    // 读取 GitHub Token（优先 env > QeeClaw 平台配置）
+    function getGitHubToken() {
+        return process.env.GITHUB_TOKEN || null;
+    }
+    electron_1.ipcMain.removeHandler('github:listIssues');
+    electron_1.ipcMain.handle('github:listIssues', async (_event, params) => {
+        const token = getGitHubToken();
+        if (!token)
+            return { success: false, error: 'GitHub Token 未配置' };
+        try {
+            const { state = 'open', page = 1, perPage = 20 } = params ?? {};
+            const res = await fetch(`https://api.github.com/repos/finewood2008/spark/issues?state=${state}&page=${page}&per_page=${perPage}`, {
+                headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+            });
+            if (!res.ok)
+                return { success: false, error: `GitHub API: ${res.status}` };
+            const data = await res.json();
+            const issues = data.filter(d => !d['pull_request']).map(i => ({
+                id: i.id, number: i.number, title: i.title,
+                state: i.state, labels: i.labels.map(l => l.name),
+                assignee: i.assignee?.login, createdAt: i.created_at, updatedAt: i.updated_at,
+            }));
+            return { success: true, data: issues };
+        }
+        catch (e) {
+            return { success: false, error: e.message };
+        }
+    });
+    electron_1.ipcMain.removeHandler('github:createIssue');
+    electron_1.ipcMain.handle('github:createIssue', async (_event, payload) => {
+        const token = getGitHubToken();
+        if (!token)
+            return { success: false, error: 'GitHub Token 未配置' };
+        try {
+            const res = await fetch('https://api.github.com/repos/finewood2008/spark/issues', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: payload.title, body: payload.body ?? '', labels: payload.labels ?? [] }),
+            });
+            if (!res.ok)
+                return { success: false, error: `GitHub API: ${res.status}` };
+            const data = await res.json();
+            return { success: true, data: { id: data.id, number: data.number, title: data.title, state: data.state, url: data.html_url } };
+        }
+        catch (e) {
+            return { success: false, error: e.message };
+        }
+    });
+    electron_1.ipcMain.removeHandler('github:getRepo');
+    electron_1.ipcMain.handle('github:getRepo', async () => {
+        const token = getGitHubToken();
+        if (!token)
+            return { success: false, error: 'GitHub Token 未配置' };
+        try {
+            const res = await fetch('https://api.github.com/repos/finewood2008/spark', {
+                headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+            });
+            if (!res.ok)
+                return { success: false, error: `GitHub API: ${res.status}` };
+            const d = await res.json();
+            return { success: true, data: {
+                    name: d.name, fullName: d.full_name, description: d.description,
+                    stars: d.stargazers_count, forks: d.forks_count,
+                    openIssues: d.open_issues_count, language: d.language,
+                    defaultBranch: d.default_branch, updatedAt: d.updated_at,
+                    cloneUrl: d.clone_url, sshUrl: d.ssh_url,
+                } };
+        }
+        catch (e) {
+            return { success: false, error: e.message };
+        }
+    });
+    electron_1.ipcMain.removeHandler('github:sync');
+    electron_1.ipcMain.handle('github:sync', async () => {
+        const token = getGitHubToken();
+        if (!token)
+            return { success: false, error: 'GitHub Token 未配置' };
+        // 通过 simple-git 在项目目录执行 git pull + git push
+        try {
+            const { default: simpleGit } = await Promise.resolve().then(() => __importStar(require('simple-git')));
+            const projectRoot = electron_1.app.getPath('userData').replace(/[/\\][^/\\]+$/, ''); // 向上找项目根
+            // 实际项目在 Desktop/spark-project，需要往上
+            const gitDir = path.join(process.env.HOME || '', 'Desktop', 'spark-project');
+            const git = simpleGit(gitDir);
+            // 设置 token remote
+            const remoteUrl = `https://${token}@github.com/finewood2008/spark.git`;
+            await git.remote(['set-url', 'origin', remoteUrl]);
+            const pullResult = await git.pull('origin', 'main', { '--rebase': 'false' });
+            const pushResult = await git.push('origin', 'main');
+            return {
+                success: true,
+                data: {
+                    pulled: pullResult.summary,
+                    pushed: pushResult.update ? pushResult.update : pushResult,
+                    message: '同步完成',
+                },
+            };
+        }
+        catch (e) {
+            return { success: false, error: `Git 同步失败: ${e.message}` };
         }
     });
 }

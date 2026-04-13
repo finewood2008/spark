@@ -30,6 +30,8 @@ electron_1.contextBridge.exposeInMainWorld('spark', {
     // Agent 交互
     agent: {
         chat: (message) => electron_1.ipcRenderer.invoke('agent:chat', message),
+        updateConfig: (config) => electron_1.ipcRenderer.invoke('agent:updateConfig', config),
+        updatePlatformConfig: (config) => electron_1.ipcRenderer.invoke('agent:updatePlatformConfig', config),
         feedback: (contentId, action, text) => electron_1.ipcRenderer.invoke('agent:feedback', contentId, action, text),
         listTools: () => electron_1.ipcRenderer.invoke('agent:listTools'),
         listMyAgents: () => electron_1.ipcRenderer.invoke('agent:listMyAgents'),
@@ -152,5 +154,12 @@ electron_1.contextBridge.exposeInMainWorld('spark', {
         getRouteProfile: () => electron_1.ipcRenderer.invoke('models:getRouteProfile'),
         getUsage: (params) => electron_1.ipcRenderer.invoke('models:getUsage', params),
         getQuota: () => electron_1.ipcRenderer.invoke('models:getQuota'),
+    },
+    // GitHub 同步与 Issues
+    github: {
+        getRepo: () => electron_1.ipcRenderer.invoke('github:getRepo'),
+        listIssues: (params) => electron_1.ipcRenderer.invoke('github:listIssues', params),
+        createIssue: (payload) => electron_1.ipcRenderer.invoke('github:createIssue', payload),
+        sync: () => electron_1.ipcRenderer.invoke('github:sync'),
     },
 });

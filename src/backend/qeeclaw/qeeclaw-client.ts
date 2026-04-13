@@ -66,7 +66,7 @@ async function loadSDK(): Promise<{ createQeeClawClient: (opts: QeeClawClientOpt
 export class QeeClawBridge {
   private static instance: QeeClawBridge | null = null;
 
-  private sdk!: QeeClawCoreSDK;
+  public sdk!: any;
   private _teamId: number;
   private _online: boolean = false;
   private _localFallback: boolean;

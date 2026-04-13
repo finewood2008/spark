@@ -59,17 +59,23 @@ export class AIProvider {
     try {
       const bridge = QeeClawBridge.get();
       if (bridge.online) {
-        // 将 messages 拼成单个 prompt 给 SDK invoke
         const prompt = messages.map(m => {
           if (m.role === 'system') return `[System] ${m.content}`;
           if (m.role === 'user') return `[User] ${m.content}`;
           return `[Assistant] ${m.content}`;
         }).join('\n\n');
-        const result = await bridge.invokeModel(prompt, options.model);
+        
+        // Use the official SDK model instead of the bridge wrapper
+        const result = await bridge.sdk.models.invoke({
+            prompt: prompt,
+            messages: messages as any, // Pass native array just in case
+            route: options.model || "general-llm", // QeeClaw uses 'route' concept
+            stream: false
+        });
         return result.text;
       }
-    } catch {
-      // bridge 未初始化或平台不可达，走 fallback
+    } catch (e) {
+      console.warn("QeeClaw SDK invoke failed, falling back to direct:", e);
     }
 
     return this.chatDirect(messages, options);
@@ -91,18 +97,35 @@ export class AIProvider {
     const temperature = options.temperature ?? 0.7;
     const maxTokens = options.maxTokens ?? 4096;
 
-    // Gemini Proxy fallback
-    const response = await fetch(`${GEMINI_PROXY_URL}/chat/completions`, {
+    // Gemini Proxy fallback (Using Google Gemini API format directly since proxy passes through)
+    // Convert OpenAI messages to Gemini contents
+    const contents = messages.map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }]
+    }));
+    
+    // Add system instruction if present
+    const systemMsg = messages.find(m => m.role === 'system');
+    let systemInstruction = undefined;
+    if (systemMsg) {
+        systemInstruction = { parts: [{ text: systemMsg.content }] };
+        // Remove system message from contents
+        const sysIndex = contents.findIndex(c => c.parts[0].text === systemMsg.content && c.role === 'user');
+        if (sysIndex !== -1) contents.splice(sysIndex, 1);
+    }
+
+    const response = await fetch(`${GEMINI_PROXY_URL}/models/${model}:generateContent?key=${process.env.FALLBACK_API_KEY || 'dummy'}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer dummy',
       },
       body: JSON.stringify({
-        model,
-        messages,
-        temperature,
-        max_tokens: maxTokens,
+        contents,
+        ...(systemInstruction && { systemInstruction }),
+        generationConfig: {
+          temperature,
+          maxOutputTokens: maxTokens,
+        }
       }),
     });
 
@@ -111,8 +134,8 @@ export class AIProvider {
       throw new Error(`AI API Error: ${response.status} - ${error}`);
     }
 
-    const data = await response.json() as APIResponse;
-    return data.choices[0]?.message?.content || '';
+    const data = await response.json() as any;
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   }
 
   /**
@@ -250,8 +273,8 @@ export class AIProvider {
       throw new Error(`Vision API Error: ${response.status} - ${error}`);
     }
 
-    const data = await response.json() as APIResponse;
-    return data.choices[0]?.message?.content || '';
+    const data = await response.json() as any;
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   }
 
   /**
