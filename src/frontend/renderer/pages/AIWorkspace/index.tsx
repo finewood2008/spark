@@ -118,16 +118,23 @@ export function AIWorkspace() {
 
           newCards.forEach((card, i) => {
             const result = results[i % results.length];
-            const url = resultToSvg(
-              result.title || `方案 ${i + 1}`,
-              result.content || '',
-              result.tags || [],
-              i, w, h
-            );
-            imageResults.push({ id: card.id, url });
+            
+            // 依据类型给不同的 Unsplash 占位图风格
+            let keyword = 'branding';
+            if (type === 'logo') keyword = 'logo,minimal';
+            if (type === 'color_palette') keyword = 'color,palette,gradient';
+            if (type === 'business_card') keyword = 'business,card,branding';
+            if (type === 'poster') keyword = 'poster,typography';
+            if (type === 'social_cover') keyword = 'lifestyle,editorial';
+            if (type === 'brand_board') keyword = 'brand,identity,mockup';
+
+            // 利用 Unsplash source 模拟真实的生成图片
+            const realImageUrl = `https://source.unsplash.com/${w}x${h}/?${keyword}&sig=${Date.now() + i}`;
+
+            imageResults.push({ id: card.id, url: realImageUrl });
 
             setCards(prev => prev.map(c =>
-              c.id === card.id ? { ...c, status: 'done', imageUrl: url, title: result.title || c.title } : c
+              c.id === card.id ? { ...c, status: 'done', imageUrl: realImageUrl, title: result.title || c.title } : c
             ));
           });
 
