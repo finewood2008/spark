@@ -3,6 +3,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { useSettingsStore } from '../store/settingsStore';
+import { LocalApiConfig } from './Settings/LocalApiConfig';
 
 // ─── 小工具 ──────────────────────────────────────
 function maskKey(key: string): string {
@@ -80,10 +81,13 @@ function AgentTab() {
         </div>
       </div>
 
+      {/* 本地模型直连配置 */}
+      <LocalApiConfig />
+
       {/* LLM 模型 */}
       <div className="card">
         <div className="card-header">
-          <h3 className="card-title">大语言模型</h3>
+          <h3 className="card-title">大语言模型 (云端配额)</h3>
           <button className="btn btn-secondary text-xs" onClick={fetchModels} disabled={!platformConnected}>
             刷新
           </button>

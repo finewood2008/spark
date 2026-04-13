@@ -92,12 +92,24 @@ export function setupRealAgentIPC() {
     initQeeClawBridge().catch(() => {});
 
     // Gemini Proxy fallback — used when QeeClaw platform is unreachable.
-    const openai = new OpenAI({
+    let openai = new OpenAI({
         apiKey: 'gemini-proxy-no-key-needed',
         baseURL: 'https://gemini-proxy.finewood2008.workers.dev/v1',
     });
 
+    let currentModel = 'gemini-3.1-pro-preview';
+
     let conversationHistory: Array<{ role: string; content: string }> = [];
+
+    ipcMain.removeHandler('agent:updateConfig');
+    ipcMain.handle('agent:updateConfig', async (_, config: { proxyUrl: string, apiKey: string, model: string }) => {
+        openai = new OpenAI({
+            baseURL: config.proxyUrl || 'https://gemini-proxy.finewood2008.workers.dev/v1',
+            apiKey: config.apiKey || 'gemini-proxy-no-key-needed',
+        });
+        currentModel = config.model || 'gemini-3.1-pro-preview';
+        return { success: true };
+    });
 
     ipcMain.removeHandler('agent:chat');
     ipcMain.handle('agent:chat', async (_, message: string) => {
@@ -194,7 +206,7 @@ ${memoryContext}${platformMemoryContext}`;
             if (!usedPlatform) {
                 const completion = await openai.chat.completions.create({
                     messages: conversationHistory as Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
-                    model: 'gemini-3.1-pro-preview',
+                    model: currentModel,
                     temperature: 0.7,
                 });
                 reply = completion.choices[0].message.content || '';
@@ -289,7 +301,7 @@ ${harnessContext}${memoryContext}`;
             if (!reply) {
                 const completion = await openai.chat.completions.create({
                     messages,
-                    model: 'gemini-3.1-pro-preview',
+                    model: currentModel,
                     temperature: 0.8,
                 });
                 reply = completion.choices[0].message.content || '';
@@ -374,7 +386,7 @@ transition可选值：cut, fade, dissolve, slide_left, slide_right, zoom_in, zoo
             if (!reply) {
                 const completion = await openai.chat.completions.create({
                     messages,
-                    model: 'gemini-3.1-pro-preview',
+                    model: currentModel,
                     temperature: 0.8,
                 });
                 reply = completion.choices[0].message.content || '';
@@ -442,7 +454,7 @@ transition可选值：cut, fade, dissolve, slide_left, slide_right, zoom_in, zoo
             if (!reply) {
                 const completion = await openai.chat.completions.create({
                     messages,
-                    model: 'gemini-3.1-pro-preview',
+                    model: currentModel,
                     temperature: 0.9,
                 });
                 reply = completion.choices[0].message.content || '';

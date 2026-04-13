@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld('spark', {
   // Agent 交互
   agent: {
     chat: (message: string) => ipcRenderer.invoke('agent:chat', message),
+    updateConfig: (config: any) => ipcRenderer.invoke('agent:updateConfig', config),
     feedback: (contentId: string, action: string, text?: string) => ipcRenderer.invoke('agent:feedback', contentId, action, text),
     listTools: () => ipcRenderer.invoke('agent:listTools'),
     listMyAgents: () => ipcRenderer.invoke('agent:listMyAgents'),
@@ -184,6 +185,14 @@ contextBridge.exposeInMainWorld('spark', {
     getUsage: (params?: { days?: number }) => ipcRenderer.invoke('models:getUsage', params),
     getQuota: () => ipcRenderer.invoke('models:getQuota'),
   },
+
+  // GitHub 同步与 Issues
+  github: {
+    getRepo: () => ipcRenderer.invoke('github:getRepo'),
+    listIssues: (params?: { state?: string; page?: number; perPage?: number }) => ipcRenderer.invoke('github:listIssues', params),
+    createIssue: (payload: { title: string; body?: string; labels?: string[] }) => ipcRenderer.invoke('github:createIssue', payload),
+    sync: () => ipcRenderer.invoke('github:sync'),
+  },
 });
 
 // 类型声明
@@ -207,6 +216,7 @@ declare global {
       };
       agent: {
         chat: (message: string) => Promise<any>;
+        updateConfig: (config: { proxyUrl: string, apiKey: string, model: string }) => Promise<any>;
         feedback: (contentId: string, action: string, text?: string) => Promise<any>;
         listTools: () => Promise<any>;
         listMyAgents: () => Promise<any>;
@@ -308,6 +318,14 @@ declare global {
         getRouteProfile: () => Promise<any>;
         getUsage: (params?: { days?: number }) => Promise<any>;
         getQuota: () => Promise<any>;
+      };
+
+      // GitHub 同步与 Issues
+      github: {
+        getRepo: () => Promise<any>;
+        listIssues: (params?: { state?: string; page?: number; perPage?: number }) => Promise<any>;
+        createIssue: (payload: { title: string; body?: string; labels?: string[] }) => Promise<any>;
+        sync: () => Promise<any>;
       };
     };
   }
