@@ -205,6 +205,9 @@ export function AIWorkspace() {
           cards={cards}
           viewport={viewport}
           onViewportChange={setViewport}
+          onCardUpdate={(id, updates) => {
+            setCards(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+          }}
         />
         {cards.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

@@ -13,6 +13,7 @@ interface InfiniteCanvasProps {
   viewport: ViewportState;
   onViewportChange: (v: ViewportState) => void;
   onCardClick?: (card: CardType) => void;
+  onCardUpdate?: (id: string, updates: Partial<CardType>) => void;
 }
 
 export function InfiniteCanvas({ cards, viewport, onViewportChange, onCardClick }: InfiniteCanvasProps) {
@@ -109,6 +110,20 @@ export function InfiniteCanvas({ cards, viewport, onViewportChange, onCardClick 
             key={card.id}
             card={card}
             onClick={() => onCardClick?.(card)}
+            canvasZoom={viewport.zoom}
+            onDragStop={(e, d) => {
+              if (onCardUpdate) onCardUpdate(card.id, { x: d.x, y: d.y });
+            }}
+            onResizeStop={(e, direction, ref, delta, position) => {
+              if (onCardUpdate) {
+                onCardUpdate(card.id, {
+                  width: parseInt(ref.style.width, 10),
+                  height: parseInt(ref.style.height, 10),
+                  x: position.x,
+                  y: position.y
+                });
+              }
+            }}
           />
         ))}
       </div>
