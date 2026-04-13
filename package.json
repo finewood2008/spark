@@ -19,6 +19,7 @@
     "deepseek-chat": "^2.0.2",
     "electron": "^28.0.0",
     "fs-extra": "^11.3.4",
+    "json5": "^2.2.3",
     "mcp-client": "^1.13.1",
     "openai": "^4.104.0",
     "react": "^18.2.0",

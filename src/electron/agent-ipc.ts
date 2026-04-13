@@ -194,7 +194,7 @@ ${memoryContext}${platformMemoryContext}`;
             if (!usedPlatform) {
                 const completion = await openai.chat.completions.create({
                     messages: conversationHistory as Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
-                    model: 'gemini-2.0-flash',
+                    model: 'gemini-3.1-pro-preview',
                     temperature: 0.7,
                 });
                 reply = completion.choices[0].message.content || '';
@@ -293,7 +293,7 @@ ${harnessContext}${memoryContext}`;
             if (!reply) {
                 const completion = await openai.chat.completions.create({
                     messages,
-                    model: 'gemini-2.0-flash',
+                    model: 'gemini-3.1-pro-preview',
                     temperature: 0.8,
                 });
                 reply = completion.choices[0].message.content || '';
@@ -382,7 +382,7 @@ transition可选值：cut, fade, dissolve, slide_left, slide_right, zoom_in, zoo
             if (!reply) {
                 const completion = await openai.chat.completions.create({
                     messages,
-                    model: 'gemini-2.0-flash',
+                    model: 'gemini-3.1-pro-preview',
                     temperature: 0.8,
                 });
                 reply = completion.choices[0].message.content || '';
@@ -439,14 +439,10 @@ transition可选值：cut, fade, dissolve, slide_left, slide_right, zoom_in, zoo
             // SDK 优先 → openai 直连 fallback
             let reply = '';
             try {
-                const bridge = QeeClawBridge.get();
-                if (bridge.online) {
-                    const chunks: string[] = [];
-                    for await (const chunk of bridge.models.invokeStream({ messages, temperature: 0.9 })) {
-                        chunks.push(chunk);
-                    }
-                    reply = chunks.join('');
-                }
+                // temporarily disable QeeClaw model stream for generate to fallback to local openai client
+                // const bridge = QeeClawBridge.get();
+                // if (bridge.online) { ... }
+                throw new Error("force fallback");
             } catch {
                 // SDK 不可用，走 fallback
             }
@@ -454,7 +450,7 @@ transition可选值：cut, fade, dissolve, slide_left, slide_right, zoom_in, zoo
             if (!reply) {
                 const completion = await openai.chat.completions.create({
                     messages,
-                    model: 'gemini-2.0-flash',
+                    model: 'gemini-3.1-pro-preview',
                     temperature: 0.9,
                 });
                 reply = completion.choices[0].message.content || '';
