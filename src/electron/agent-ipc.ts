@@ -1122,4 +1122,101 @@ transition可选值：cut, fade, dissolve, slide_left, slide_right, zoom_in, zoo
             return { success: true, data: await bridge.models.getQuota() };
         } catch (e: any) { return { success: false, error: e.message }; }
     });
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  GitHub 同步与 Issues 管理
+    // ═══════════════════════════════════════════════════════════════════
+
+    // 读取 GitHub Token（优先 env > QeeClaw 平台配置）
+    function getGitHubToken(): string | null {
+        return process.env.GITHUB_TOKEN || null;
+    }
+
+    ipcMain.removeHandler('github:listIssues');
+    ipcMain.handle('github:listIssues', async (_event, params?: { state?: 'open'|'closed'|'all'; page?: number; perPage?: number }) => {
+        const token = getGitHubToken();
+        if (!token) return { success: false, error: 'GitHub Token 未配置' };
+        try {
+            const { state = 'open', page = 1, perPage = 20 } = params ?? {};
+            const res = await fetch(`https://api.github.com/repos/finewood2008/spark/issues?state=${state}&page=${page}&per_page=${perPage}`, {
+                headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+            });
+            if (!res.ok) return { success: false, error: `GitHub API: ${res.status}` };
+            const data = await res.json() as any[];
+            const issues = data.filter(d => !d['pull_request']).map(i => ({
+                id: i.id, number: i.number, title: i.title,
+                state: i.state, labels: (i.labels as any[]).map(l => l.name),
+                assignee: i.assignee?.login, createdAt: i.created_at, updatedAt: i.updated_at,
+            }));
+            return { success: true, data: issues };
+        } catch (e: any) { return { success: false, error: e.message }; }
+    });
+
+    ipcMain.removeHandler('github:createIssue');
+    ipcMain.handle('github:createIssue', async (_event, payload: { title: string; body?: string; labels?: string[] }) => {
+        const token = getGitHubToken();
+        if (!token) return { success: false, error: 'GitHub Token 未配置' };
+        try {
+            const res = await fetch('https://api.github.com/repos/finewood2008/spark/issues', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: payload.title, body: payload.body ?? '', labels: payload.labels ?? [] }),
+            });
+            if (!res.ok) return { success: false, error: `GitHub API: ${res.status}` };
+            const data = await res.json() as any;
+            return { success: true, data: { id: data.id, number: data.number, title: data.title, state: data.state, url: data.html_url } };
+        } catch (e: any) { return { success: false, error: e.message }; }
+    });
+
+    ipcMain.removeHandler('github:getRepo');
+    ipcMain.handle('github:getRepo', async () => {
+        const token = getGitHubToken();
+        if (!token) return { success: false, error: 'GitHub Token 未配置' };
+        try {
+            const res = await fetch('https://api.github.com/repos/finewood2008/spark', {
+                headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+            });
+            if (!res.ok) return { success: false, error: `GitHub API: ${res.status}` };
+            const d = await res.json() as any;
+            return { success: true, data: {
+                name: d.name, fullName: d.full_name, description: d.description,
+                stars: d.stargazers_count, forks: d.forks_count,
+                openIssues: d.open_issues_count, language: d.language,
+                defaultBranch: d.default_branch, updatedAt: d.updated_at,
+                cloneUrl: d.clone_url, sshUrl: d.ssh_url,
+            }};
+        } catch (e: any) { return { success: false, error: e.message }; }
+    });
+
+    ipcMain.removeHandler('github:sync');
+    ipcMain.handle('github:sync', async () => {
+        const token = getGitHubToken();
+        if (!token) return { success: false, error: 'GitHub Token 未配置' };
+        // 通过 simple-git 在项目目录执行 git pull + git push
+        try {
+            const { default: simpleGit } = await import('simple-git');
+            const projectRoot = app.getPath('userData').replace(/[/\\][^/\\]+$/, ''); // 向上找项目根
+            // 实际项目在 Desktop/spark-project，需要往上
+            const gitDir = path.join(process.env.HOME || '', 'Desktop', 'spark-project');
+            const git = simpleGit(gitDir);
+
+            // 设置 token remote
+            const remoteUrl = `https://${token}@github.com/finewood2008/spark.git`;
+            await git.remote(['set-url', 'origin', remoteUrl]);
+
+            const pullResult = await git.pull('origin', 'main', { '--rebase': 'false' });
+            const pushResult = await git.push('origin', 'main');
+
+            return {
+                success: true,
+                data: {
+                    pulled: pullResult.summary,
+                    pushed: pushResult.update ? pushResult.update : pushResult,
+                    message: '同步完成',
+                },
+            };
+        } catch (e: any) {
+            return { success: false, error: `Git 同步失败: ${e.message}` };
+        }
+    });
 }
