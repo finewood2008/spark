@@ -35,6 +35,7 @@ contextBridge.exposeInMainWorld('spark', {
   agent: {
     chat: (message: string) => ipcRenderer.invoke('agent:chat', message),
     updateConfig: (config: any) => ipcRenderer.invoke('agent:updateConfig', config),
+    updatePlatformConfig: (config: any) => ipcRenderer.invoke('agent:updatePlatformConfig', config),
     feedback: (contentId: string, action: string, text?: string) => ipcRenderer.invoke('agent:feedback', contentId, action, text),
     listTools: () => ipcRenderer.invoke('agent:listTools'),
     listMyAgents: () => ipcRenderer.invoke('agent:listMyAgents'),
@@ -217,6 +218,7 @@ declare global {
       agent: {
         chat: (message: string) => Promise<any>;
         updateConfig: (config: { proxyUrl: string, apiKey: string, model: string }) => Promise<any>;
+        updatePlatformConfig: (config: { token: string, teamId: string }) => Promise<any>;
         feedback: (contentId: string, action: string, text?: string) => Promise<any>;
         listTools: () => Promise<any>;
         listMyAgents: () => Promise<any>;

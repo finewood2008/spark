@@ -4,6 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSettingsStore } from '../store/settingsStore';
 import { LocalApiConfig } from './Settings/LocalApiConfig';
+import { PlatformKeyConfig } from './Settings/PlatformKeyConfig';
 
 // ─── 小工具 ──────────────────────────────────────
 function maskKey(key: string): string {
@@ -80,9 +81,6 @@ function AgentTab() {
           <StatusBadge ok={platformConnected} text={platformConnected ? '已连接' : '离线'} />
         </div>
       </div>
-
-      {/* 本地模型直连配置 */}
-      <LocalApiConfig />
 
       {/* LLM 模型 */}
       <div className="card">
@@ -268,6 +266,8 @@ function GeneralTab() {
 
   return (
     <div className="space-y-6">
+      <PlatformKeyConfig />
+      
       {/* 钱包 */}
       {wallet && (
         <div className="card">

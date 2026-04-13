@@ -102,6 +102,18 @@ export function setupRealAgentIPC() {
     let conversationHistory: Array<{ role: string; content: string }> = [];
 
     ipcMain.removeHandler('agent:updateConfig');
+    ipcMain.removeHandler('agent:updatePlatformConfig');
+    ipcMain.handle('agent:updatePlatformConfig', async (_, config: { token: string, teamId: string }) => {
+        // 更新环境变量以供后续所有使用该环境变量的 QeeClawBridge 实例使用
+        process.env.QEECLAW_TOKEN = config.token;
+        process.env.QEECLAW_TEAM_ID = config.teamId;
+        
+        console.log('[agent-ipc] 平台凭证已更新，Token:', config.token ? '已设置' : '未设置', 'TeamID:', config.teamId);
+        
+        // 由于前端做了 location.reload(), Bridge 将随着页面刷新重置，因此只要环境变量有了即可
+        return { success: true };
+    });
+
     ipcMain.handle('agent:updateConfig', async (_, config: { proxyUrl: string, apiKey: string, model: string }) => {
         openai = new OpenAI({
             baseURL: config.proxyUrl || 'https://gemini-proxy.finewood2008.workers.dev/v1',
