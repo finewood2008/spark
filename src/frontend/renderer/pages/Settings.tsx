@@ -384,14 +384,14 @@ function AboutTab() {
 
 // ─── 主组件 ──────────────────────────────────────
 export function Settings() {
-  const [activeTab, setActiveTab] = useState('agent');
+  const [activeTab, setActiveTab] = useState('general');
   const { fetchAll, platformStatus } = useSettingsStore();
 
   useEffect(() => {
     fetchAll();
   }, []);
 
-  const tabKey = activeTab === 'agent' ? 'agent' : activeTab === 'general' ? 'general' : 'about';
+  const tabKey = activeTab === 'general' ? 'general' : activeTab === 'about' ? 'about' : 'general';
 
   return (
     <div className="flex flex-col h-full bg-[#F9FAFB]">
@@ -418,7 +418,6 @@ export function Settings() {
       {/* Tabs */}
       <div className="tabs">
         {[
-          { key: 'agent', label: '模型配置 (Agent)' },
           { key: 'general', label: '通用设置' },
           { key: 'about', label: '关于系统' },
         ].map(t => (
@@ -434,7 +433,6 @@ export function Settings() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-8 max-w-3xl">
-        {tabKey === 'agent' && <AgentTab />}
         {tabKey === 'general' && <GeneralTab />}
         {tabKey === 'about' && <AboutTab />}
       </div>
