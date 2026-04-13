@@ -278,14 +278,10 @@ ${harnessContext}${memoryContext}`;
             // SDK 优先 → openai 直连 fallback
             let reply = '';
             try {
-                const bridge = QeeClawBridge.get();
-                if (bridge.online) {
-                    const chunks: string[] = [];
-                    for await (const chunk of bridge.models.invokeStream({ messages, temperature: 0.8 })) {
-                        chunks.push(chunk);
-                    }
-                    reply = chunks.join('');
-                }
+                // temporarily disable QeeClaw model stream for chat to fallback to local openai client
+                // const bridge = QeeClawBridge.get();
+                // if (bridge.online) { ... }
+                throw new Error("force fallback");
             } catch {
                 // SDK 不可用，走 fallback
             }
@@ -367,14 +363,10 @@ transition可选值：cut, fade, dissolve, slide_left, slide_right, zoom_in, zoo
             // SDK 优先 → openai 直连 fallback
             let reply = '';
             try {
-                const bridge = QeeClawBridge.get();
-                if (bridge.online) {
-                    const chunks: string[] = [];
-                    for await (const chunk of bridge.models.invokeStream({ messages, temperature: 0.8 })) {
-                        chunks.push(chunk);
-                    }
-                    reply = chunks.join('');
-                }
+                // temporarily disable QeeClaw model stream for chat to fallback to local openai client
+                // const bridge = QeeClawBridge.get();
+                // if (bridge.online) { ... }
+                throw new Error("force fallback");
             } catch {
                 // SDK 不可用，走 fallback
             }
