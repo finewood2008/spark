@@ -92,9 +92,10 @@ export function setupRealAgentIPC() {
     initQeeClawBridge().catch(() => {});
 
     // Gemini Proxy fallback — used when QeeClaw platform is unreachable.
+    // 保底配置：使用 Cloudflare Worker 代理，密钥在打包环节通过 CI/CD 或 .env 注入，代码仓库不包含明文 Key
     let openai = new OpenAI({
-        apiKey: 'gemini-proxy-no-key-needed',
-        baseURL: 'https://gemini-proxy.finewood2008.workers.dev/v1',
+        apiKey: process.env.FALLBACK_API_KEY || 'gemini-proxy-no-key-needed',
+        baseURL: process.env.FALLBACK_BASE_URL || 'https://gemini-proxy.finewood2008.workers.dev/v1',
     });
 
     let currentModel = 'gemini-3.1-pro-preview';
@@ -116,8 +117,8 @@ export function setupRealAgentIPC() {
 
     ipcMain.handle('agent:updateConfig', async (_, config: { proxyUrl: string, apiKey: string, model: string }) => {
         openai = new OpenAI({
-            baseURL: config.proxyUrl || 'https://gemini-proxy.finewood2008.workers.dev/v1',
-            apiKey: config.apiKey || 'gemini-proxy-no-key-needed',
+            baseURL: config.proxyUrl || process.env.FALLBACK_BASE_URL || 'https://gemini-proxy.finewood2008.workers.dev/v1',
+            apiKey: config.apiKey || process.env.FALLBACK_API_KEY || 'gemini-proxy-no-key-needed',
         });
         currentModel = config.model || 'gemini-3.1-pro-preview';
         return { success: true };
